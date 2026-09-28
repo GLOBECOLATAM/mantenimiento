@@ -221,6 +221,12 @@ input,textarea,select{font:inherit;color:inherit}
 .mcard h2{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:34px;line-height:1}
 .mcard p.sub{font-size:13.5px;color:var(--muted);margin:6px 0 18px;line-height:1.45}
 .fld{margin-bottom:14px}
+.fijos{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 14px;margin-bottom:16px}
+.fijo{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.fijo:first-child{border-top:none}
+.fijo span{font-size:12.5px;color:var(--muted)}
+.fijo b{font-size:14px;font-weight:600;text-align:right}
+.ayuda{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45}
 .inp{width:100%;padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:var(--surface);font-size:16px;outline:none}
 .inp:focus{border-color:var(--blue)}
 .tbl{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
@@ -261,7 +267,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
   <section class="jcard" id="jcard">
     <div class="jtop">
       <div><div class="jdate" id="jDate">—</div><div class="jday" id="jDay"></div></div>
-      <button class="jedit" id="jEdit">Editar jornada</button>
+      <button class="jedit" id="jEdit">Cambiar compañero</button>
     </div>
     <div class="jppl" id="jPpl"></div>
     <div class="jbase" id="jBase"></div>
@@ -305,12 +311,17 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
 <!-- jornada -->
 <div class="modal" id="mJ"><div class="mcard">
   <h2>Jornada de hoy</h2>
-  <p class="sub">Se llena una sola vez al día. Todos los contenedores que revises quedarán con esta fecha y responsables.</p>
-  <div class="fld"><label class="lbl" for="jF">Fecha</label><input class="inp" type="date" id="jF"></div>
-  <div class="fld"><label class="lbl" for="jC">Ciudad</label><select class="inp" id="jC"></select></div>
-  <div class="fld"><label class="lbl" for="jR1">Responsable 1</label><input class="inp" id="jR1" list="names" autocomplete="off" placeholder="Nombre y apellido"></div>
-  <div class="fld"><label class="lbl" for="jR2">Responsable 2 (opcional)</label><input class="inp" id="jR2" list="names" autocomplete="off" placeholder="Nombre y apellido"></div>
-  <datalist id="names"></datalist>
+  <p class="sub">Estos datos salen de tu ficha y de la fecha de hoy. Todos los contenedores que revises quedarán registrados así.</p>
+  <div class="fijos">
+    <div class="fijo"><span>Fecha</span><b id="jFecha">—</b></div>
+    <div class="fijo"><span>Ciudad</span><b id="jCiudad">—</b></div>
+    <div class="fijo"><span>Responsable 1</span><b id="jResp1">—</b></div>
+  </div>
+  <div class="fld"><label class="lbl" for="jR2sel">Responsable 2 (opcional)</label>
+    <select class="inp" id="jR2sel"><option value="">Trabajo solo</option></select>
+    <input class="inp" id="jR2otro" style="display:none;margin-top:10px" autocomplete="off" placeholder="Nombre y apellido">
+    <div class="ayuda" id="jAyuda"></div>
+  </div>
   <div class="mbtns"><button class="primary" id="jSave">Empezar jornada</button></div>
   <a class="jvolver" id="jVolver" href="/portal/" style="display:none">Volver al portal</a>
 </div></div>
@@ -323,6 +334,12 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
   <div class="mbtns"><button class="secondary" id="sCsv">Descargar respaldo</button><button class="primary" id="sClose">Listo</button></div>
 </div></div>
 
+<div class="modal" id="mSin"><div class="mcard">
+  <h2>Entra desde el portal</h2>
+  <p class="sub">Para registrar contenedores necesitamos saber quién eres. Abre el portal, ingresa con tu cédula y tu PIN, y vuelve a entrar a Mantenimiento desde ahí.</p>
+  <div class="mbtns"><a class="primary" href="/portal/" style="text-decoration:none">Ir al portal</a></div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -331,8 +348,9 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
    ===================================================================== */
 const CONFIG={
   APPS_SCRIPT_URL:"",   // ← pega aquí la URL de la aplicación web de Apps Script
-  SHEET_BASE:"Mantenimiento",        // cada ciudad tendrá su pestaña: «Mantenimiento · AMBATO»
-  CIUDADES:["AMBATO","QUITO"],       // agrega aquí las ciudades nuevas cuando se expandan
+  SHEET_BASE:"Mantenimiento",        // cada ciudad tendra su pestaña: «Mantenimiento · AMBATO»
+  // Quienes pueden aparecer como Responsable 2 (etiqueta de la columna K)
+  PERMISO_EQUIPO:"mantenimiento_contenedor",
   GEOTRACK_CSV:"https://docs.google.com/spreadsheets/d/1gXYMMPawfS16ed-8cYmsUWuWuJPHdxBM2E7tKMUgbr4/gviz/tq?tqx=out:csv&gid=237265956"
 };
 
@@ -423,28 +441,68 @@ async function refreshGeo(){
    ===================================================================== */
 const getJ=()=>LS.get('gtm-jornada',null);
 function sesionPortal(){const s=LS.get('gs-sesion',null);return (s&&s.exp>Date.now())?s:null;}
-function openJornada(){
-  const j=getJ()||{},ses=sesionPortal();
-  $('#jF').value=j.fecha&&j.fecha===todayISO()?j.fecha:todayISO();
-  const ciu=j.ciudad||(ses&&ses.ciudad)||CONFIG.CIUDADES[0];
-  const lista=[...new Set([...CONFIG.CIUDADES,ciu].filter(Boolean))];
-  $('#jC').innerHTML=lista.map(c=>`<option${c===ciu?' selected':''}>${esc(c)}</option>`).join('');
-  $('#jR1').value=j.r1||(ses&&ses.nombre)||'';$('#jR2').value=j.r2||'';
-  $('#names').innerHTML=LS.get('gtm-names',[]).map(n=>`<option value="${esc(n)}">`).join('');
-  $('#mJ').classList.add('open');
-  setTimeout(()=>{if(!$('#jR1').value)$('#jR1').focus();},350);
+const apiURL=()=>LS.get('gs-api','')||'';
+
+/* Compañeros de la misma ciudad con permiso de mantenimiento.
+   Se guardan en el teléfono para que la lista exista aunque no haya señal. */
+async function cargarEquipo(){
+  const ses=sesionPortal(); if(!ses||!apiURL()||!navigator.onLine)return;
+  try{
+    const r=await fetch(apiURL(),{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify({action:'equipo',token:ses.token,permiso:CONFIG.PERMISO_EQUIPO})});
+    const d=await r.json();
+    if(d&&d.ok){LS.set('gtm-equipo',d.equipo||[]);pintarEquipo();}
+  }catch(e){}
 }
+function pintarEquipo(){
+  const sel=$('#jR2sel'); if(!sel)return;
+  const ses=sesionPortal(), yo=(ses&&ses.nombre)||'';
+  const lista=LS.get('gtm-equipo',[]).filter(p=>p.nombre!==yo);
+  const guardado=(getJ()||{}).r2||'';
+  sel.innerHTML='<option value="">Trabajo solo</option>'
+    +lista.map(p=>`<option value="${esc(p.nombre)}"${p.nombre===guardado?' selected':''}>${esc(p.nombre)}${p.cargo?' · '+esc(p.cargo):''}</option>`).join('')
+    +`<option value="__otro">Otra persona…</option>`;
+  const fuera=guardado&&!lista.some(p=>p.nombre===guardado);
+  if(fuera){sel.value='__otro';$('#jR2otro').style.display='';$('#jR2otro').value=guardado;}
+  $('#jAyuda').textContent=lista.length
+    ? `${lista.length} compañero${lista.length===1?'':'s'} de ${(ses&&ses.ciudad)||'tu ciudad'} con permiso de mantenimiento.`
+    : 'Aún no hay otros compañeros con permiso de mantenimiento en tu ciudad. Puedes escribir el nombre.';
+}
+function openJornada(){
+  const ses=sesionPortal();
+  if(!ses){sinSesion();return;}
+  const j=getJ()||{};
+  const [y,m,d]=todayISO().split('-');
+  $('#jFecha').textContent=`${d}/${m}/${y}`;
+  $('#jCiudad').textContent=ses.ciudad||'—';
+  $('#jResp1').textContent=ses.nombre||'—';
+  pintarEquipo(); cargarEquipo();
+  $('#mJ').classList.add('open');
+}
+$('#jR2sel')&&$('#jR2sel').addEventListener('change',e=>{
+  const otro=e.target.value==='__otro';
+  $('#jR2otro').style.display=otro?'':'none';
+  if(otro)setTimeout(()=>$('#jR2otro').focus(),100); else $('#jR2otro').value='';
+});
 $('#jSave').addEventListener('click',()=>{
-  const r1=$('#jR1').value.trim(),r2=$('#jR2').value.trim(),fecha=$('#jF').value||todayISO(),ciudad=$('#jC').value||CONFIG.CIUDADES[0];
-  if(!r1){$('#jR1').classList.add('err');$('#jR1').focus();toast('Escribe al menos el responsable 1');return;}
-  LS.set('gtm-jornada',{fecha,r1,r2,ciudad});
-  const names=LS.get('gtm-names',[]).filter(n=>n!==r1&&n!==r2);if(r2)names.unshift(r2);names.unshift(r1);LS.set('gtm-names',names.slice(0,20));
+  const ses=sesionPortal();
+  if(!ses){sinSesion();return;}
+  const sel=$('#jR2sel').value;
+  const r2=sel==='__otro'?$('#jR2otro').value.trim():sel;
+  if(sel==='__otro'&&!r2){$('#jR2otro').focus();toast('Escribe el nombre de tu compañero');return;}
+  LS.set('gtm-jornada',{fecha:todayISO(),ciudad:ses.ciudad||'',r1:ses.nombre||'',r2});
   $('#mJ').classList.remove('open');renderAll();
 });
+
+/* Sin sesión del portal no se puede firmar el registro */
+function sinSesion(){
+  $('#mJ').classList.remove('open');
+  $('#mSin').classList.add('open');
+}
 $('#jEdit').addEventListener('click',openJornada);
 function renderJornada(){
   const j=getJ();
-  if(!j){$('#jDate').textContent='Sin jornada';$('#jDay').textContent='Toca «Editar jornada» para empezar';$('#jPpl').innerHTML='';}
+  if(!j){$('#jDate').textContent='Sin jornada';$('#jDay').textContent='Confirma tu jornada para empezar';$('#jPpl').innerHTML='';}
   else{
     const [y,m,d]=j.fecha.split('-').map(Number),dt=new Date(y,m-1,d);
     $('#jDate').textContent=`${pad(d)}/${pad(m)}/${String(y).slice(2)}`;
@@ -840,8 +898,11 @@ if(sesionPortal()){$('#volver').style.display='grid';$('#jVolver').style.display
   try{await dbOpen();records=await dbAll();}catch(e){toast('Este navegador no permite guardar datos. Usa Chrome o Safari actualizados.');}
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   renderAll();paintInstall();
+  const ses=sesionPortal();
+  if(!ses){sinSesion();return;}
+  cargarEquipo();
   const j=getJ();
-  if(!j||j.fecha!==todayISO())openJornada();
+  if(!j||j.fecha!==todayISO()||j.r1!==ses.nombre)openJornada();
   else if(LS.get('gtm-draft',null))setTimeout(()=>openForm(null),300);
   refreshGeo();syncNow();
   registrarSW();
