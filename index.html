@@ -16,6 +16,11 @@
 <script>(function(){try{var t=localStorage.getItem('gt-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Apps Script rebota de script.google.com a googleusercontent.com; abrir
+     las dos conexiones desde ya le quita el saludo a cada envio. -->
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="preconnect" href="https://docs.google.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -351,7 +356,10 @@ const CONFIG={
   SHEET_BASE:"Mantenimiento",        // cada ciudad tendra su pestaña: «Mantenimiento · AMBATO»
   // Quienes pueden aparecer como Responsable 2 (etiqueta de la columna K)
   PERMISO_EQUIPO:"mantenimiento_contenedor",
-  GEOTRACK_CSV:"https://docs.google.com/spreadsheets/d/1gXYMMPawfS16ed-8cYmsUWuWuJPHdxBM2E7tKMUgbr4/gviz/tq?tqx=out:csv&gid=237265956"
+  // Hoja GEO TRACK MANAGER: una sola pestaña para todas las ciudades
+  GEO_ID:"1gXYMMPawfS16ed-8cYmsUWuWuJPHdxBM2E7tKMUgbr4",
+  GEO_GID:"237265956",
+  GEO_COL_CIUDAD:"K"   // letra de la columna CIUDAD en esa pestaña
 };
 
 /* Puntos de revisión (mismos de la hoja «Mantenimiento») */
@@ -424,15 +432,48 @@ let GEO=LS.get('gtm-geotrack',{t:0,list:[]});   // list: [num, ruta, lat, lng]
 let GEOMAP=new Map(GEO.list.map(x=>[String(x[0]).toLowerCase(),x]));
 let ROUTES=[...new Set(GEO.list.map(x=>x[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c==='"')q=true;else if(c===','){row.push(cur);cur='';}else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!=='\r')cur+=c;}}if(cur.length||row.length){row.push(cur);rows.push(row);}return rows;}
+/* Pide al servidor SOLO los contenedores de la ciudad de esta persona.
+   Si la columna CIUDAD aun no existe, cae de vuelta a traer todo. */
+function urlGeo(ciudad){
+  const base=`https://docs.google.com/spreadsheets/d/${CONFIG.GEO_ID}/gviz/tq?tqx=out:csv&gid=${CONFIG.GEO_GID}`;
+  if(!ciudad)return base;
+  const q=`select * where upper(${CONFIG.GEO_COL_CIUDAD}) = '${String(ciudad).toUpperCase().replace(/'/g,"")}'`;
+  return base+'&tq='+encodeURIComponent(q);
+}
+function filasGeo(txt){
+  const rows=parseCSV(txt);let start=0;
+  for(let i=0;i<Math.min(rows.length,6);i++){if(rows[i].some(c=>/n[úu]mero/i.test(c))){start=i+1;break;}}
+  const list=[];
+  for(const r of rows.slice(start)){
+    const n=(r[0]||'').trim();if(!n)continue;
+    const lat=parseFloat((r[1]||'').replace(',','.')),lng=parseFloat((r[2]||'').replace(',','.'));
+    list.push([n,(r[4]||'').trim().toUpperCase(),isFinite(lat)?lat:null,isFinite(lng)?lng:null,(r[10]||'').trim().toUpperCase()]);
+  }
+  return list;
+}
 async function refreshGeo(){
   if(!navigator.onLine)return;
+  const ses=sesionPortal(), ciudad=(ses&&ses.ciudad)||'';
   try{
-    const txt=await (await fetch(CONFIG.GEOTRACK_CSV,{cache:'no-store'})).text();
-    const rows=parseCSV(txt);let start=0;
-    for(let i=0;i<Math.min(rows.length,6);i++){if(rows[i].some(c=>/n[úu]mero/i.test(c))){start=i+1;break;}}
-    const list=[];
-    for(const r of rows.slice(start)){const n=(r[0]||'').trim();if(!n)continue;const lat=parseFloat((r[1]||'').replace(',','.')),lng=parseFloat((r[2]||'').replace(',','.'));list.push([n,(r[4]||'').trim().toUpperCase(),isFinite(lat)?lat:null,isFinite(lng)?lng:null]);}
-    if(list.length>20){GEO={t:Date.now(),list};LS.set('gtm-geotrack',GEO);GEOMAP=new Map(list.map(x=>[x[0].toLowerCase(),x]));ROUTES=[...new Set(list.map(x=>x[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));renderJornada();}
+    let list=[];
+    if(ciudad){
+      try{
+        list=filasGeo(await (await fetch(urlGeo(ciudad),{cache:'no-store'})).text());
+      }catch(e){list=[];}
+    }
+    // sin ciudad, o si el filtro no devolvio nada (aun no existe la columna),
+    // traemos todo y filtramos aqui
+    if(!list.length){
+      const todo=filasGeo(await (await fetch(urlGeo(''),{cache:'no-store'})).text());
+      list=ciudad?todo.filter(x=>!x[4]||x[4]===ciudad.toUpperCase()):todo;
+      if(!list.length)list=todo;
+    }
+    if(list.length>5){
+      GEO={t:Date.now(),ciudad,list};LS.set('gtm-geotrack',GEO);
+      GEOMAP=new Map(list.map(x=>[x[0].toLowerCase(),x]));
+      ROUTES=[...new Set(list.map(x=>x[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+      renderJornada();
+    }
   }catch(e){}
 }
 
@@ -441,6 +482,16 @@ async function refreshGeo(){
    ===================================================================== */
 const getJ=()=>LS.get('gtm-jornada',null);
 function sesionPortal(){const s=LS.get('gs-sesion',null);return (s&&s.exp>Date.now())?s:null;}
+/* Golpecito al script para que Google lo levante antes de que haga falta.
+   Sin datos, sin esperar respuesta: si falla, no pasa nada. */
+let despiertoT=0;
+function despertar(){
+  const u=CONFIG.APPS_SCRIPT_URL;
+  if(!u||!navigator.onLine||Date.now()-despiertoT<90000)return;
+  despiertoT=Date.now();
+  try{fetch(u,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},
+    body:'{"action":"despertar"}',redirect:'follow',keepalive:true}).catch(()=>{});}catch(e){}
+}
 const apiURL=()=>LS.get('gs-api','')||'';
 
 /* Compañeros de la misma ciudad con permiso de mantenimiento.
@@ -509,7 +560,9 @@ function renderJornada(){
     $('#jDay').textContent=dt.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'});
     $('#jPpl').innerHTML=(j.ciudad?`<span class="person" style="background:rgba(55,138,221,.14);color:var(--blue)"><i style="background:var(--blue)">📍</i>${esc(j.ciudad)}</span>`:'')+[j.r1,j.r2].filter(Boolean).map(n=>`<span class="person"><i>${esc(n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</i>${esc(n)}</span>`).join('');
   }
-  $('#jBase').textContent=GEO.list.length?`Base de contenedores guardada: ${GEO.list.length} · actualizada ${new Date(GEO.t).toLocaleDateString('es-EC',{day:'numeric',month:'short'})} ${hhmm(new Date(GEO.t))}`:'La base de contenedores se descargará cuando haya internet.';
+  $('#jBase').textContent=GEO.list.length
+    ? `Contenedores de ${GEO.ciudad||'tu ciudad'}: ${GEO.list.length} · actualizado ${new Date(GEO.t).toLocaleDateString('es-EC',{day:'numeric',month:'short'})} ${hhmm(new Date(GEO.t))}`
+    : 'La base de contenedores se descargará cuando haya internet.';
 }
 
 /* =====================================================================
@@ -894,12 +947,13 @@ function renderAll(){renderJornada();renderList();renderNet();}
 // Si la persona entró por el portal, le dejamos el camino de regreso
 if(sesionPortal()){$('#volver').style.display='grid';$('#jVolver').style.display='block';}
 (async function start(){
-  paintThemeBtn();
+  paintThemeBtn();despertar();
   try{await dbOpen();records=await dbAll();}catch(e){toast('Este navegador no permite guardar datos. Usa Chrome o Safari actualizados.');}
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   renderAll();paintInstall();
   const ses=sesionPortal();
   if(!ses){sinSesion();return;}
+  if(GEO.ciudad&&ses.ciudad&&GEO.ciudad!==ses.ciudad){GEO={t:0,ciudad:'',list:[]};LS.set('gtm-geotrack',GEO);GEOMAP=new Map();ROUTES=[];}
   cargarEquipo();
   const j=getJ();
   if(!j||j.fecha!==todayISO()||j.r1!==ses.nombre)openJornada();
