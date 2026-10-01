@@ -239,6 +239,7 @@ input,textarea,select{font:inherit;color:inherit}
 .geo .aviso{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.45;padding:10px 12px;border-radius:12px;margin-top:4px}
 .geo .aviso.mal{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red)}
 .geo .aviso.bien{background:color-mix(in srgb,var(--teal) 13%,transparent);color:var(--teal)}
+.pista{display:block;font-size:11.5px;line-height:1.4;color:var(--muted);margin-top:6px}
 .photo{margin-top:10px}
 .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:10px}
 .fotos:empty{display:none}
@@ -406,6 +407,9 @@ const CONFIG={
   PERMISO_EQUIPO:"mantenimiento_contenedor",
   // Quien puede catastrar contenedores nuevos (etiqueta de la columna K)
   PERMISO_CATASTRO:"catastro_contenedor",
+  // Ciudades donde aplica el Número GIDSA. En las demas el campo no aparece
+  // y la columna F se graba como N/A.
+  CIUDADES_GIDSA:["AMBATO"],
   // Plantilla del enlace de WhatsApp; si se deja vacio, el servidor copia
   // el de la ultima fila de FICHA TECNICA para no inventarse un formato.
   GEO_WA:"",
@@ -487,15 +491,20 @@ mq.addEventListener&&mq.addEventListener('change',paintThemeBtn);
    ===================================================================== */
 let GEO=LS.get('gtm-geotrack',{t:0,list:[]});   // list: [num, ruta, lat, lng]
 let GEOMAP=new Map(GEO.list.map(x=>[String(x[0]).toLowerCase(),x]));
-let ROUTES=[...new Set(GEO.list.map(x=>x[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+let ROUTES=[];   // se arma en recalcularRutas(): las de la ciudad + las sueltas
 function parseCSV(t){const rows=[];let row=[],cur='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=c;}else{if(c==='"')q=true;else if(c===','){row.push(cur);cur='';}else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(c!=='\r')cur+=c;}}if(cur.length||row.length){row.push(cur);rows.push(row);}return rows;}
 /* Pide al servidor SOLO los contenedores de la ciudad de esta persona.
    Si la columna CIUDAD aun no existe, cae de vuelta a traer todo. */
 function urlGeo(ciudad){
+  const C=CONFIG.GEO_COL_CIUDAD;
   const base=`https://docs.google.com/spreadsheets/d/${CONFIG.GEO_ID}/gviz/tq?tqx=out:csv&gid=${CONFIG.GEO_GID}`;
+  if(ciudad===null){
+    // filas sin ciudad: de ahi salen las rutas que todavia no estan asociadas
+    return base+'&tq='+encodeURIComponent(`select * where ${C} is null or ${C} = ''`);
+  }
   if(!ciudad)return base;
-  const q=`select * where upper(${CONFIG.GEO_COL_CIUDAD}) = '${String(ciudad).toUpperCase().replace(/'/g,"")}'`;
-  return base+'&tq='+encodeURIComponent(q);
+  return base+'&tq='+encodeURIComponent(
+    `select * where upper(${C}) = '${String(ciudad).toUpperCase().replace(/'/g,"")}'`);
 }
 function filasGeo(txt){
   const rows=parseCSV(txt);let start=0;
@@ -508,29 +517,66 @@ function filasGeo(txt){
   }
   return list;
 }
+/* Las rutas que puede elegir alguien: las de SU ciudad, mas las que todavia
+   no estan asociadas a ninguna. Esas ultimas son rutas recien creadas en
+   GEO TRACK MANAGER; en cuanto alguien catastre un contenedor en una de
+   ellas, la ruta queda asociada a su ciudad y deja de salirle a los demas. */
+let RUTAS_LIBRES=LS.get('gtm-rutas-libres',[]);
+function recalcularRutas(list){
+  const propias=list.map(x=>x[1]).filter(Boolean);
+  ROUTES=[...new Set([...propias,...RUTAS_LIBRES])]
+    .filter(Boolean).sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+}
+
+recalcularRutas(GEO.list);
+
+/* Google puede responder con una pagina de error o un aviso de sesion en vez
+   del CSV. Ese texto se deja parsear igual y produce «filas» basura. Si nos
+   fiaramos, borrariamos los contenedores de alguien en plena ruta. Una fila
+   de verdad trae numero y coordenadas. */
+function pareceGeo(list){
+  return list.some(x=>String(x[0]||'').trim()&&isFinite(x[2])&&isFinite(x[3]));
+}
+
 async function refreshGeo(){
   if(!navigator.onLine)return;
-  const ses=sesionPortal(), ciudad=(ses&&ses.ciudad)||'';
+  const ses=sesionPortal(), ciudad=((ses&&ses.ciudad)||'').trim().toUpperCase();
   try{
-    let list=[];
+    let list=null;
     if(ciudad){
       try{
-        list=filasGeo(await (await fetch(urlGeo(ciudad),{cache:'no-store'})).text());
-      }catch(e){list=[];}
+        const f=filasGeo(await (await fetch(urlGeo(ciudad),{cache:'no-store'})).text());
+        // el servidor ya filtro; igual verificamos, por si la consulta fallo callada
+        if(f.length&&pareceGeo(f))list=f.filter(x=>x[4]===ciudad);
+      }catch(e){}
     }
-    // sin ciudad, o si el filtro no devolvio nada (aun no existe la columna),
-    // traemos todo y filtramos aqui
-    if(!list.length){
+    if(list===null){
       const todo=filasGeo(await (await fetch(urlGeo(''),{cache:'no-store'})).text());
-      list=ciudad?todo.filter(x=>!x[4]||x[4]===ciudad.toUpperCase()):todo;
-      if(!list.length)list=todo;
+      // respuesta vacia o rota: nos quedamos con lo que ya teniamos guardado
+      if(!todo.length||!pareceGeo(todo))return;
+      // Si NINGUNA fila trae ciudad, la hoja es anterior a la separacion:
+      // ahi si mostramos todo. Si alguna la trae, el filtro manda y una
+      // ciudad sin contenedores se queda sin contenedores, como debe ser.
+      const hayColumna=todo.some(x=>x[4]);
+      list=(ciudad&&hayColumna)?todo.filter(x=>x[4]===ciudad):todo;
+      RUTAS_LIBRES=[...new Set(todo.filter(x=>!x[4]).map(x=>x[1]).filter(Boolean))];
+      LS.set('gtm-rutas-libres',RUTAS_LIBRES);
+    }else{
+      // consulta aparte, pequeña: solo las rutas que aun no tienen ciudad
+      try{
+        const sueltas=filasGeo(await (await fetch(urlGeo(null),{cache:'no-store'})).text());
+        // aqui vale la lista vacia (puede no haber rutas sueltas), pero no la basura
+        if(!sueltas.length||pareceGeo(sueltas)){
+          RUTAS_LIBRES=[...new Set(sueltas.filter(x=>!x[4]).map(x=>x[1]).filter(Boolean))];
+          LS.set('gtm-rutas-libres',RUTAS_LIBRES);
+        }
+      }catch(e){}
     }
-    if(list.length>5){
-      GEO={t:Date.now(),ciudad,list};LS.set('gtm-geotrack',GEO);
-      GEOMAP=new Map(list.map(x=>[x[0].toLowerCase(),x]));
-      ROUTES=[...new Set(list.map(x=>x[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
-      renderJornada();
-    }
+    GEO={t:Date.now(),ciudad,list};LS.set('gtm-geotrack',GEO);
+    GEOMAP=new Map(list.map(x=>[x[0].toLowerCase(),x]));
+    recalcularRutas(list);
+    renderJornada();
+    if(F&&F.nuevo)pintarFicha();
   }catch(e){}
 }
 
@@ -691,7 +737,7 @@ async function syncNow(){
         payload.geo={
           numero:r.data.tacho, x:r.data.lat, y:r.data.lng,
           ruta:r.data.ruta||'', ciudad:r.data.ciudad||'',
-          gidsa:r.data.gidsa||'N/A', qr:r.data.qr||'NO',
+          gidsa:aplicaGidsa(r.data.ciudad)?(r.data.gidsa||'N/A'):'N/A', qr:r.data.qr||'NO',
           wa:CONFIG.GEO_WA||'', hojaId:CONFIG.GEO_ID, hojaGid:CONFIG.GEO_GID
         };
       }
@@ -816,6 +862,28 @@ function itemHTML(k,l){
 }
 /* Lo que va a ir a FICHA TECNICA de GEO TRACK MANAGER. Las coordenadas no se
    escriben a mano: salen del GPS, que es el punto de catastrar en sitio. */
+/* Ruta: solo las de la ciudad de quien entro. Si esa ciudad todavia no tiene
+   rutas —el caso de Quito al empezar— se escribe a mano. Y aunque las tenga,
+   siempre queda «Otra ruta» por si esta abriendo una nueva. */
+/* GIDSA es de Ambato; en las demas ciudades el campo ni se muestra. */
+const aplicaGidsa=c=>(CONFIG.CIUDADES_GIDSA||[]).map(x=>String(x).toUpperCase()).includes(String(c||'').toUpperCase());
+
+function campoRuta(){
+  const propias=[...new Set(ROUTES.filter(Boolean))];
+  const fuera=F.ruta&&!propias.includes(F.ruta);     // ruta escrita a mano
+  if(!propias.length){
+    return `<input class="sel" id="fRutaOtra" value="${esc(F.ruta||'')}" placeholder="Escribe la ruta" autocomplete="off" autocapitalize="characters">
+            <small class="pista">Tu ciudad todavía no tiene rutas registradas.</small>`;
+  }
+  const libres=new Set(RUTAS_LIBRES);
+  return `<select class="sel" id="fRuta">
+      <option value="">Selecciona la ruta</option>
+      ${propias.map(r=>`<option value="${esc(r)}"${r===F.ruta?' selected':''}>${esc(r)}${libres.has(r)&&!GEO.list.some(x=>x[1]===r)?' · sin ciudad aún':''}</option>`).join('')}
+      <option value="__otra"${fuera?' selected':''}>Otra ruta…</option>
+    </select>
+    <input class="sel" id="fRutaOtra" value="${esc(fuera?F.ruta:'')}" placeholder="Escribe la ruta nueva" autocomplete="off" autocapitalize="characters" style="margin-top:8px;display:${fuera?'block':'none'}">`;
+}
+
 function fichaGeo(){
   const j=getJ(),ciudad=(j&&j.ciudad)||'';
   const hay=F.tacho&&GEOMAP.has(F.tacho.toLowerCase());
@@ -832,8 +900,8 @@ function fichaGeo(){
       <label class="cmp"><span>Requiere QR</span>
         <select class="sel" id="gQR"><option value="NO"${F.qr!=='SI'?' selected':''}>NO</option><option value="SI"${F.qr==='SI'?' selected':''}>SI</option></select></label>
     </div>
-    <label class="cmp" style="margin-bottom:9px"><span>Número GIDSA</span>
-      <input class="sel" id="gGidsa" value="${esc(F.gidsa||'N/A')}" placeholder="N/A" autocomplete="off"></label>
+    ${aplicaGidsa(ciudad)?`<label class="cmp" style="margin-bottom:9px"><span>Número GIDSA</span>
+      <input class="sel" id="gGidsa" value="${esc(F.gidsa||'N/A')}" placeholder="N/A" autocomplete="off"></label>`:''}
     ${F.tacho?(hay
       ? `<div class="aviso mal"><b>El número ${esc(F.tacho)} ya existe en GEO TRACK MANAGER.</b> Revisa si es el mismo contenedor o usa otro número.</div>`
       : `<div class="aviso bien">El número ${esc(F.tacho)} está libre.</div>`):''}
@@ -849,7 +917,6 @@ function pintarFicha(){
 function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {c,a};}
 function groupChip(g){const {c,a}=groupStatus(g);if(!c&&!a)return '<span class="grp-s">Todo OK</span>';return `<span class="grp-s has">${[c?plural(c,'cambio'):'',a?plural(a,'ajuste'):''].filter(Boolean).join(' · ')}</span>`;}
 function buildForm(){
-  const routeOpts=[...new Set([...ROUTES,F.ruta].filter(Boolean))];
   $('#fBody').innerHTML=`
     <label class="lbl" for="fTacho">Número del contenedor</label>
     <div class="tachobox">
@@ -857,8 +924,7 @@ function buildForm(){
       <div class="sugg" id="fSugg"></div>
     </div>
     <div class="row2">
-      <div><label class="lbl" for="fRuta">Ruta</label>
-      <select class="sel" id="fRuta"><option value="">Selecciona la ruta</option>${routeOpts.map(r=>`<option${r===F.ruta?' selected':''}>${esc(r)}</option>`).join('')}</select></div>
+      <div><label class="lbl" for="fRuta">Ruta</label>${campoRuta()}</div>
     </div>
     <div class="chips" id="fChips"></div>
     ${F.nuevo?fichaGeo():''}
@@ -932,6 +998,7 @@ body.addEventListener('click',e=>{
 body.addEventListener('input',e=>{
   if(F&&F.bloqueado)return;
   if(e.target.id==='gGidsa'){F.gidsa=e.target.value.trim();changed();}
+  if(e.target.id==='fRutaOtra'){F.ruta=e.target.value.trim().toUpperCase();changed();}
   if(e.target.id==='fTacho'){
     F.tacho=e.target.value.trim().toUpperCase();
     const hit=GEOMAP.get(F.tacho.toLowerCase());
@@ -946,7 +1013,15 @@ body.addEventListener('input',e=>{
 });
 body.addEventListener('change',e=>{
   if(F&&F.bloqueado)return;
-  if(e.target.id==='fRuta'){F.ruta=e.target.value;changed();}
+  if(e.target.id==='fRuta'){
+    const otra=$('#fRutaOtra');
+    if(e.target.value==='__otra'){
+      F.ruta='';if(otra){otra.style.display='block';otra.value='';otra.focus();}
+    }else{
+      F.ruta=e.target.value;if(otra)otra.style.display='none';
+    }
+    changed();
+  }
   if(e.target.id==='gQR'){F.qr=e.target.value;changed();}
   if(e.target.id==='fFile'){const fs=e.target.files;if(fs&&fs.length){agregarFotos(fs);e.target.value='';}}
 });
@@ -1234,7 +1309,20 @@ if(puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
   renderAll();paintInstall();
   const ses=sesionPortal();
   if(!ses){sinSesion();return;}
-  if(GEO.ciudad&&ses.ciudad&&GEO.ciudad!==ses.ciudad){GEO={t:0,ciudad:'',list:[]};LS.set('gtm-geotrack',GEO);GEOMAP=new Map();ROUTES=[];}
+  // La base guardada puede traer otra ciudad: o porque la persona cambio de
+  // ciudad, o porque se lleno antes de que existiera la columna. Se limpia
+  // mirando las filas, no solo la etiqueta.
+  if(ses.ciudad){
+    const mia=String(ses.ciudad).trim().toUpperCase();
+    const ajenas=GEO.list.some(x=>x[4]&&x[4]!==mia);
+    if(GEO.ciudad!==ses.ciudad||ajenas){
+      const propias=GEO.list.filter(x=>x[4]===mia);
+      GEO={t:propias.length?GEO.t:0,ciudad:propias.length?ses.ciudad:'',list:propias};
+      LS.set('gtm-geotrack',GEO);
+      GEOMAP=new Map(propias.map(x=>[x[0].toLowerCase(),x]));
+      recalcularRutas(propias);
+    }
+  }
   cargarEquipo();
   const j=getJ();
   if(!j||j.fecha!==todayISO()||j.r1!==ses.nombre)openJornada();
