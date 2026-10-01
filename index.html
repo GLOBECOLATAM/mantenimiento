@@ -1527,7 +1527,9 @@ if(puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
   }
   cargarEquipo();
   const j=getJ();
-  if(!j||j.fecha!==todayISO()||j.r1!==ses.nombre)openJornada();
+  // la jornada se vuelve a confirmar si cambio el dia, la persona o su CIUDAD:
+  // la ciudad del registro sale de la jornada, y no puede quedar la anterior
+  if(!j||j.fecha!==todayISO()||j.r1!==ses.nombre||String(j.ciudad||'').toUpperCase()!==String(ses.ciudad||'').toUpperCase())openJornada();
   else if(LS.get('gtm-draft',null))setTimeout(()=>openForm(null),300);
   refreshGeo();syncNow();
   registrarSW();
