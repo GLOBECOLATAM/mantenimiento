@@ -240,6 +240,18 @@ input,textarea,select{font:inherit;color:inherit}
 .geo .aviso.mal{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red)}
 .geo .aviso.bien{background:color-mix(in srgb,var(--teal) 13%,transparent);color:var(--teal)}
 .pista{display:block;font-size:11.5px;line-height:1.4;color:var(--muted);margin-top:6px}
+/* diagnostico */
+.dx{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line)}
+.dx:first-child{border-top:0}
+.dx i{flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:var(--surface-2);margin-top:5px}
+.dx[data-e="ok"] i{background:var(--teal)} .dx[data-e="mal"] i{background:var(--red)}
+.dx[data-e="aviso"] i{background:var(--amber)} .dx[data-e="va"] i{background:var(--blue);animation:lat 1s infinite}
+@keyframes lat{50%{opacity:.3}}
+.dx div{min-width:0;flex:1}
+.dx b{display:block;font-size:13.5px;font-weight:600}
+.dx small{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.45;margin-top:2px}
+.dx small code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;word-break:break-all}
+.dx .t{flex:0 0 auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:4px}
 .photo{margin-top:10px}
 .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:10px}
 .fotos:empty{display:none}
@@ -382,7 +394,15 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
   <h2>Resumen del día</h2>
   <p class="sub" id="sSub"></p>
   <div id="sBody"></div>
-  <div class="mbtns"><button class="secondary" id="sCsv">Descargar respaldo</button><button class="primary" id="sClose">Listo</button></div>
+  <div class="mbtns"><button class="secondary" id="sDiag">Revisar conexión</button><button class="secondary" id="sCsv">Descargar respaldo</button><button class="primary" id="sClose">Listo</button></div>
+</div></div>
+
+<!-- diagnostico de conexion -->
+<div class="modal" id="mDiag"><div class="mcard">
+  <h2>Revisar conexión</h2>
+  <p class="sub">Comprueba dónde se está trabando el envío. No toca tus hojas: la fila de prueba va a una pestaña aparte.</p>
+  <div id="dBody"></div>
+  <div class="mbtns"><button class="secondary" id="dCopiar">Copiar</button><button class="primary" id="dClose">Cerrar</button></div>
 </div></div>
 
 <div class="modal" id="mSin"><div class="mcard">
@@ -608,6 +628,133 @@ async function refreshGeo(){
 }
 
 /* =====================================================================
+   DIAGNOSTICO · por qué no se envía
+   ===================================================================== */
+const DX=[];
+function dxPintar(){
+  $('#dBody').innerHTML=DX.map(x=>`<div class="dx" data-e="${x.e}">
+    <i></i><div><b>${esc(x.t)}</b>${x.m?`<small>${x.m}</small>`:''}</div>
+    ${x.ms!=null?`<span class="t">${x.ms} ms</span>`:''}</div>`).join('');
+}
+function dx(t,e,m,ms){
+  const y=DX.find(z=>z.t===t);
+  if(y){y.e=e;y.m=m||'';y.ms=ms;}else DX.push({t,e,m:m||'',ms});
+  dxPintar();
+}
+async function dxEnviar(cuerpo,ms){
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort('tiempo'),ms||30000);
+  const t0=Date.now();
+  try{
+    const r=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify(cuerpo),redirect:'follow',signal:ctl.signal});
+    return {ok:true,txt:await r.text(),ms:Date.now()-t0};
+  }catch(e){
+    return {ok:false,error:String(e&&e.message||e),ms:Date.now()-t0,
+            corto:ctl.signal.reason==='tiempo'};
+  }finally{clearTimeout(to);}
+}
+const dxHtml=t=>/^\s*<(!doctype|html|head|body)/i.test(t||'');
+const dxJson=t=>{try{return JSON.parse(t);}catch(e){return null;}};
+function dxFallo(r){
+  if(r.corto)return 'Se agotó el tiempo. El servidor no contestó a tiempo.';
+  const e=(r.error||'').toLowerCase();
+  if(e.includes('failed to fetch')||e.includes('load failed')||e.includes('networkerror'))
+    return 'El navegador no pudo llegar. Casi siempre es que la implementación de Apps Script no está abierta a <b>Cualquier usuario</b>.';
+  return r.error||'Falló';
+}
+
+async function diagnosticar(){
+  DX.length=0; dxPintar();
+  $('#mDiag').classList.add('open');
+
+  if(!CONFIG.APPS_SCRIPT_URL){
+    dx('Falta la dirección del servidor','mal','El archivo no tiene puesta la URL de Apps Script.');return;
+  }
+  dx('Internet',navigator.onLine?'ok':'mal',navigator.onLine?'El teléfono tiene conexión.':'El teléfono está sin conexión.');
+  if(!navigator.onLine)return;
+
+  // 1 · el servidor responde
+  dx('El servidor responde','va');
+  let r=await dxEnviar({action:'despertar'},20000);
+  if(!r.ok){dx('El servidor responde','mal',dxFallo(r),r.ms);return;}
+  if(dxHtml(r.txt)){
+    dx('El servidor responde','mal','Google devolvió la pantalla de iniciar sesión. En Apps Script: <b>Implementar → Gestionar implementaciones → ✏️ → Quién tiene acceso: Cualquier usuario</b>.',r.ms);return;
+  }
+  dx('El servidor responde','ok',r.ms>4000?'Tardó un poco: estaba dormido.':'',r.ms);
+
+  // 2 · la version publicada
+  dx('Está publicada la versión nueva','va');
+  r=await dxEnviar({action:'rutas',hojaId:CONFIG.GEO_ID,hojaGid:CONFIG.GEO_GID},25000);
+  let jr=r.ok?dxJson(r.txt):null;
+  if(!r.ok){dx('Está publicada la versión nueva','mal',dxFallo(r),r.ms);}
+  else if(jr&&(jr.ok||jr.lista))dx('Está publicada la versión nueva','ok','',r.ms);
+  else if(jr&&/datos incompletos/i.test(jr.error||''))
+    dx('Está publicada la versión nueva','mal','Está corriendo el código viejo. Pegar el script no basta: <b>Implementar → Gestionar implementaciones → ✏️ → Versión: Nueva versión</b>.',r.ms);
+  else dx('Está publicada la versión nueva','aviso','Respondió: <code>'+esc((jr&&jr.error)||r.txt||'').slice(0,160)+'</code>',r.ms);
+
+  // 3 · GEO TRACK MANAGER
+  if(jr&&jr.ok&&Array.isArray(jr.lista))
+    dx('Puede abrir GEO TRACK MANAGER','ok',jr.lista.length+' rutas · datos hasta la fila '+(jr.hasta||'?'));
+  else if(jr&&/permission|permiso|autoriza|access|denied/i.test(jr.error||''))
+    dx('Puede abrir GEO TRACK MANAGER','mal','Falta autorizar el segundo archivo. En el editor de Apps Script elige la función <b>doGet</b>, pulsa <b>Ejecutar</b>, acepta los permisos y vuelve a publicar una <b>Nueva versión</b>.');
+  else dx('Puede abrir GEO TRACK MANAGER','mal',(jr&&jr.error)?('<code>'+esc(String(jr.error).slice(0,180))+'</code>'):'No se pudo comprobar.');
+
+  // 4 · escribir un registro
+  dx('Puede guardar un registro','va');
+  const idp='DIAG-'+Date.now().toString(36);
+  r=await dxEnviar({sheet:'DIAGNOSTICO',id:idp,
+    fields:[['Prueba','revisar conexión'],['Cuándo',new Date().toLocaleString('es-EC')]]},30000);
+  if(!r.ok)dx('Puede guardar un registro','mal',dxFallo(r),r.ms);
+  else{
+    const j=dxJson(r.txt);
+    if(j&&j.ok)dx('Puede guardar un registro','ok','Quedó una fila en la pestaña DIAGNOSTICO.',r.ms);
+    else dx('Puede guardar un registro','mal','<code>'+esc(((j&&j.error)||r.txt||'').slice(0,180))+'</code>',r.ms);
+  }
+
+  // 5 · la hoja publicada
+  dx('Puede leer la hoja de contenedores','va');
+  const t0=Date.now();
+  try{
+    const rr=await fetch(urlGeo(''),{cache:'no-store'});
+    const tx=await rr.text(); const ms=Date.now()-t0;
+    const f=filasGeo(tx);
+    if(rr.ok&&f.length&&pareceGeo(f)){
+      const mia=((sesionPortal()||{}).ciudad||'').toUpperCase();
+      const dela=f.filter(x=>x[4]===mia).length;
+      dx('Puede leer la hoja de contenedores','ok',
+         f.length+' contenedores en la hoja · <b>'+dela+' de '+(mia||'tu ciudad')+'</b>',ms);
+      if(mia&&!dela)dx('Tu ciudad no tiene contenedores','aviso',
+        'La hoja no tiene ninguno con ciudad <b>'+esc(mia)+'</b>. Por eso no salen sugerencias al escribir un número: no es una falla, es que todavía no hay nada que sugerir.');
+    }else{
+      dx('Puede leer la hoja de contenedores','mal','La hoja no se deja leer. En GEO TRACK MANAGER: <b>Compartir → Acceso general → Cualquier persona con el enlace</b>, como Lector.',ms);
+    }
+  }catch(e){dx('Puede leer la hoja de contenedores','mal','No se pudo: '+esc(e.message),Date.now()-t0);}
+
+  // 6 · el peso de las fotos
+  dx('Aguanta el peso de las fotos','va');
+  r=await dxEnviar({sheet:'DIAGNOSTICO',id:idp+'-P',fields:[['Prueba','peso']],
+    fotos:['data:image/jpeg;base64,'+'d'.repeat(300*1024)]},45000);
+  if(!r.ok)dx('Aguanta el peso de las fotos','mal',r.corto
+    ?'Una sola foto de 300 KB pasó de 45 s. Con cuatro no alcanza: ese es el motivo de que se quede «por enviar».':dxFallo(r),r.ms);
+  else{
+    const est=Math.round(r.ms*4/1000);
+    dx('Aguanta el peso de las fotos',r.ms>7000?'aviso':'ok',
+      'Una foto de 300 KB en '+r.ms+' ms · cuatro rondarían '+est+' s'+(est>25?' — el límite son 30 s, va justo.':'.'),r.ms);
+  }
+}
+$('#sDiag').addEventListener('click',()=>{$('#mS').classList.remove('open');diagnosticar();});
+$('#dClose').addEventListener('click',()=>$('#mDiag').classList.remove('open'));
+$('#dCopiar').addEventListener('click',async e=>{
+  const t='DIAGNOSTICO · '+new Date().toLocaleString('es-EC')+'\n\n'+
+    DX.map(x=>`[${x.e.toUpperCase()}] ${x.t}${x.ms!=null?' ('+x.ms+' ms)':''}`+
+      (x.m?'\n   '+x.m.replace(/<[^>]+>/g,''):'')).join('\n\n');
+  try{await navigator.clipboard.writeText(t);e.target.textContent='Copiado';
+    setTimeout(()=>e.target.textContent='Copiar',1600);}
+  catch(err){toast('No se pudo copiar. Toma una captura de pantalla.');}
+});
+
+/* =====================================================================
    JORNADA
    ===================================================================== */
 const getJ=()=>LS.get('gtm-jornada',null);
@@ -699,9 +846,12 @@ function renderJornada(){
     $('#jDay').textContent=dt.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'});
     $('#jPpl').innerHTML=(j.ciudad?`<span class="person" style="background:rgba(55,138,221,.14);color:var(--blue)"><i style="background:var(--blue)">📍</i>${esc(j.ciudad)}</span>`:'')+[j.r1,j.r2].filter(Boolean).map(n=>`<span class="person"><i>${esc(n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</i>${esc(n)}</span>`).join('');
   }
+  const ciu=GEO.ciudad||((sesionPortal()||{}).ciudad)||'';
   $('#jBase').textContent=GEO.list.length
-    ? `Contenedores de ${GEO.ciudad||'tu ciudad'}: ${GEO.list.length} · actualizado ${new Date(GEO.t).toLocaleDateString('es-EC',{day:'numeric',month:'short'})} ${hhmm(new Date(GEO.t))}`
-    : 'La base de contenedores se descargará cuando haya internet.';
+    ? `Contenedores de ${ciu||'tu ciudad'}: ${GEO.list.length} · actualizado ${new Date(GEO.t).toLocaleDateString('es-EC',{day:'numeric',month:'short'})} ${hhmm(new Date(GEO.t))}`
+    : (GEO.t
+        ? `${ciu||'Tu ciudad'} todavía no tiene contenedores registrados. Usa «Contenedor nuevo» para empezar a catastrarlos.`
+        : 'La base de contenedores se descargará cuando haya internet.');
 }
 
 /* =====================================================================
@@ -738,7 +888,7 @@ $('#list').addEventListener('click',e=>{const b=e.target.closest('.rec');if(!b)r
 /* =====================================================================
    ENVÍO A GOOGLE SHEETS (cola automática)
    ===================================================================== */
-let syncing=false,netState=navigator.onLine?'online':'offline',lastSync=LS.get('gtm-lastsync',0);
+let syncing=false,netState=navigator.onLine?'online':'offline',lastSync=LS.get('gtm-lastsync',0),ultimoError='';
 function hojaDe(r){const c=(r.data.ciudad||'').trim().toUpperCase();return c?`${CONFIG.SHEET_BASE} · ${c}`:CONFIG.SHEET_BASE;}
 function toFields(r){
   const d=r.data,t=totals(d);
@@ -775,6 +925,7 @@ async function syncNow(){
       clearTimeout(to);
       const j=await res.json();
       if(!j.ok)throw new Error(j.error||'Error del servidor');
+      ultimoError='';
       r.status='sent';r.sentAt=Date.now();
       // El servidor devuelve los enlaces que quedaron en la hoja. Si el ID ya
       // estaba cerrado, devuelve los de la primera vez: esos son los que valen.
@@ -809,7 +960,13 @@ async function syncNow(){
           : 'El registro se guardó, pero no pude agregarlo a GEO TRACK MANAGER. Avisa a soporte.');
       }
       await dbPut(r);netState='online';lastSync=Date.now();LS.set('gtm-lastsync',lastSync);
-    }catch(e){netState=navigator.onLine?'nosignal':'offline';console.warn('Envío pendiente:',e);break;}
+    }catch(e){
+      // Antes esto decia «cobertura debil» pasara lo que pasara, y escondia
+      // los errores del servidor. Ahora se guarda el motivo real.
+      ultimoError=String(e&&e.message||e);
+      netState=!navigator.onLine?'offline':(/failed to fetch|load failed|networkerror|abort/i.test(ultimoError)?'nosignal':'error');
+      console.warn('Envío pendiente:',e);break;
+    }
   }
   syncing=false;renderList();renderNet();
 }
@@ -819,13 +976,22 @@ function renderNet(){
   const pend=n?` · <b>${plural(n,'registro')} por enviar</b>`:'';
   if(!navigator.onLine||netState==='offline'){s='offline';msg=`<b>Sin conexión.</b> Puedes seguir trabajando: todo se guarda en este teléfono${pend}.`;}
   else if(netState==='nosignal'&&n){s='offline';msg=`<b>Cobertura débil.</b> Los datos siguen guardados en el teléfono${pend}.`;act='Reintentar';}
+  // el servidor contestó, pero con un error: eso no es falta de cobertura
+  else if(netState==='error'&&n){s='offline';msg=`<b>El servidor rechazó el envío.</b> Los datos siguen guardados${pend}. ${esc(ultimoError).slice(0,90)}`;act='Revisar';}
   else if(!CONFIG.APPS_SCRIPT_URL){s='idle';msg=n?`Guardado en el teléfono${pend}. Falta conectar Google Sheets.`:'Guardado en el teléfono activo. Falta conectar Google Sheets.';}
   else if(syncing){s='sync';msg=`Enviando ${plural(n,'registro')} a Google Sheets…`;}
   else if(n){s='sync';msg=`${plural(n,'registro')} por enviar. Se enviarán automáticamente.`;act='Enviar ahora';}
   else{s='ok';msg=`Todo enviado a Google Sheets${lastSync?` · ${hhmm(new Date(lastSync))}`:''}.`;}
   el.dataset.s=s;tx.innerHTML=msg;
   let b=el.querySelector('.act');
-  if(act){if(!b){b=document.createElement('button');b.className='act';b.addEventListener('click',()=>{netState='online';syncNow();});el.appendChild(b);}b.textContent=act;}else if(b)b.remove();
+  if(act){
+    if(!b){b=document.createElement('button');b.className='act';
+      b.addEventListener('click',()=>{
+        if(b.textContent==='Revisar'){diagnosticar();return;}
+        netState='online';syncNow();
+      });el.appendChild(b);}
+    b.textContent=act;
+  }else if(b)b.remove();
 }
 addEventListener('online',()=>{netState='online';renderNet();refreshGeo();syncNow();});
 addEventListener('offline',()=>{netState='offline';renderNet();});
