@@ -211,10 +211,31 @@ input,textarea,select{font:inherit;color:inherit}
 .tg.on .sw::after{transform:translateX(20px)}
 .obs{width:100%;min-height:96px;padding:14px 16px;border-radius:18px;border:1px solid var(--line);background:var(--surface);font-size:16px;resize:vertical;outline:none;line-height:1.45}
 .obs:focus{border-color:var(--blue)}
-.photo{display:flex;align-items:center;gap:12px;margin-top:10px}
+.cerrado{display:none;align-items:flex-start;gap:11px;padding:13px 15px;border-radius:16px;margin-bottom:16px;
+  background:color-mix(in srgb,var(--amber) 13%,transparent);border:1px solid color-mix(in srgb,var(--amber) 34%,transparent);color:var(--amber)}
+.cerrado svg{flex:0 0 auto;margin-top:1px}
+.cerrado b{display:block;font-size:14px;margin-bottom:2px}
+.cerrado small{display:block;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.sheet.visto .cerrado{display:flex}
+/* en solo lectura nada responde al dedo, pero todo se sigue leyendo */
+.sheet.visto #fBody{pointer-events:none}
+.sheet.visto #fBody .seg button:not(.on),.sheet.visto #fBody [data-q],
+.sheet.visto #fBody [data-allok],.sheet.visto #fBody .photo label{opacity:.4}
+.sheet.visto #fBody .thumb,.sheet.visto #fBody .grp-h,.sheet.visto #fBody [data-open]{pointer-events:auto}
+.photo{margin-top:10px}
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:10px}
+.fotos:empty{display:none}
+.fcount{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600;margin-bottom:8px}
+.fcount .falta{color:var(--amber)}
+.fcount .listo{color:var(--teal)}
+.fbar{height:4px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-bottom:10px}
+.fbar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),var(--teal));transition:width .35s cubic-bezier(.2,.7,.2,1)}
+.photo label{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:14px;border:1px dashed var(--line);font-size:14px;font-weight:600;cursor:pointer;justify-content:center}
 .photo label{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:14px;border:1px dashed var(--line);font-size:14px;font-weight:600;cursor:pointer;flex:1;justify-content:center}
 .photo input{display:none}
-.thumb{position:relative;width:64px;height:64px;border-radius:14px;overflow:hidden;flex:0 0 auto;background:var(--surface-2)}
+.thumb{position:relative;width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--surface-2)}
+.thumb .n{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:99px}
+.thumb a.ver{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--blue);text-align:center;padding:4px}
 .thumb img{width:100%;height:100%;object-fit:cover}
 .thumb button{position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;display:grid;place-items:center}
 
@@ -303,7 +324,13 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
     <div class="ttl"><b id="fTitle">Nuevo contenedor</b><small id="fSub">Hoja de revisión</small></div>
     <button class="ibtn" id="fDel" aria-label="Eliminar" style="display:none;color:var(--red)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
   </div></div>
-  <div class="sh-body" id="shBody"><div class="in" id="fBody"></div></div>
+  <div class="sh-body" id="shBody"><div class="in">
+    <div class="cerrado" id="fCerrado">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.4"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7"/></svg>
+      <div><b>Registro enviado</b><small>Ya está en Google Sheets y no se puede modificar. Si hay un error, pídele a tu supervisor que lo reabra.</small></div>
+    </div>
+    <div id="fBody"></div>
+  </div></div>
   <div class="sh-ft"><div class="in">
     <div class="sumline" id="fSum"></div>
     <div class="ftbtns">
@@ -354,6 +381,9 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
 const CONFIG={
   APPS_SCRIPT_URL:"https://script.google.com/macros/s/AKfycbzMYQA4jlWqLd3FhJS3Di7Mbzt_s2hixBKlE3qHGHyw4SuQRtoa3BbqgmsHD5bLZnR-/exec",   // ← pega aquí la URL de la aplicación web de Apps Script
   SHEET_BASE:"Mantenimiento",        // cada ciudad tendra su pestaña: «Mantenimiento · AMBATO»
+  MIN_FOTOS:4,                       // obligatorias para poder guardar; pueden subir mas
+  FOTO_LADO:1280,                    // lado mayor al que se reduce cada foto
+  FOTO_CALIDAD:0.68,                 // 4 fotos ≈ 1,5 MB por registro sin señal
   // Quienes pueden aparecer como Responsable 2 (etiqueta de la columna K)
   PERMISO_EQUIPO:"mantenimiento_contenedor",
   // Hoja GEO TRACK MANAGER: una sola pestaña para todas las ciudades
@@ -584,6 +614,8 @@ function renderList(){
     if(d.chocado)tags.push('<span class="tag x">Chocado</span>');
     if(d.cambioCont)tags.push('<span class="tag x">Cambio de contenedor</span>');
     if(!tags.length)tags.push('<span class="tag ok">Todo OK</span>');
+    const nf=fotosDe(r).length+urlsDe(r).length;
+    if(nf)tags.push(`<span class="tag ok">${nf} ${nf===1?'foto':'fotos'}</span>`);
     const st=r.status==='sent'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Enviado"><path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 8z"/><path d="m9.5 13.5 2 2 3.5-4"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" aria-label="Pendiente"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
     return `<button class="rec${r.id===lastNewId?' new':''}" data-id="${r.id}" style="--_c:${routeColor(d.ruta)}">
       <div class="rec-l"><div class="rec-id">${esc(d.tacho)}</div><div class="rec-rt">${esc(d.ruta||'Sin ruta')}</div></div>
@@ -606,7 +638,6 @@ function toFields(r){
   for(const k of ORDER){const v=d.items[k];f.push([LABEL[k],v==null?'':v]);}
   f.push(['Chocado',d.chocado?1:''],['Cambio Cont.',d.cambioCont?1:''],['Total cambios',t.c],['Total ajustes',t.a],['Observaciones',d.obs||''],
     ['Registrado',stamp(r.createdAt)],['Última edición',stamp(r.updatedAt)]);
-  if(r.fotoClear)f.push(['Foto','']);
   return f;
 }
 async function syncNow(){
@@ -617,14 +648,19 @@ async function syncNow(){
   for(const r of pend){
     try{
       const payload={sheet:hojaDe(r),id:r.id,fields:toFields(r)};
-      if(r.foto){payload.foto=r.foto;payload.fotoName=`${r.data.fecha}_${r.data.tacho}_${r.id.slice(0,6)}`;payload.fotoField='Foto';}
+      const pend=fotosDe(r);
+      if(pend.length){payload.fotos=pend;payload.fotoName=`${r.data.fecha}_${r.data.tacho}_${r.id.slice(0,6)}`;}
       const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
       const res=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload),signal:ctl.signal,redirect:'follow'});
       clearTimeout(to);
       const j=await res.json();
       if(!j.ok)throw new Error(j.error||'Error del servidor');
-      r.status='sent';r.sentAt=Date.now();r.fotoClear=false;
-      if(j.fotoUrl){r.fotoUrl=j.fotoUrl;r.foto=null;}      // libera espacio en el teléfono
+      r.status='sent';r.sentAt=Date.now();
+      // El servidor devuelve los enlaces que quedaron en la hoja. Si el ID ya
+      // estaba cerrado, devuelve los de la primera vez: esos son los que valen.
+      if(Array.isArray(j.fotoUrls)&&j.fotoUrls.length){r.fotosUrl=j.fotoUrls;}
+      r.fotos=[];delete r.foto;delete r.fotoUrl;   // libera el espacio del teléfono
+      if(j.cerrado)r.cerrado=true;
       await dbPut(r);netState='online';lastSync=Date.now();LS.set('gtm-lastsync',lastSync);
     }catch(e){netState=navigator.onLine?'nosignal':'offline';console.warn('Envío pendiente:',e);break;}
   }
@@ -653,15 +689,26 @@ setInterval(()=>{if(navigator.onLine)syncNow();},30000);
    FORMULARIO DE CONTENEDOR
    ===================================================================== */
 let F=null,dirtyForm=false,gpsWatch=null;
-const blank=()=>({id:null,tacho:'',ruta:'',items:{},chocado:false,cambioCont:false,obs:'',foto:null,fotoUrl:null,fotoChanged:false,lat:null,lng:null,acc:null,dist:null});
+const blank=()=>({id:null,tacho:'',ruta:'',items:{},chocado:false,cambioCont:false,obs:'',fotos:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false});
+/* Los registros viejos guardaban UNA foto en «foto»/«fotoUrl». Esto los lee
+   igual que los nuevos, para no perder nada de lo que ya esta en los telefonos. */
+const fotosDe=r=>Array.isArray(r.fotos)?r.fotos.filter(Boolean):(r.foto?[r.foto]:[]);
+const urlsDe =r=>Array.isArray(r.fotosUrl)?r.fotosUrl.filter(Boolean):(r.fotoUrl?[r.fotoUrl]:[]);
+const cuantasFotos=f=>f.fotos.length+f.fotosUrl.length;
 function openForm(rec){
   if(!getJ()){openJornada();return;}
-  if(rec){const d=rec.data;F={...blank(),id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',foto:rec.foto||null,fotoUrl:rec.fotoUrl||null,lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist};}
-  else{const dr=LS.get('gtm-draft',null);F=dr&&!dr.id?{...blank(),...dr,fotoChanged:!!dr.foto}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
+  if(rec){const d=rec.data;F={...blank(),id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',
+    fotos:fotosDe(rec),fotosUrl:urlsDe(rec),lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist,
+    bloqueado:rec.status==='sent'};}
+  else{const dr=LS.get('gtm-draft',null);F=dr&&!dr.id?{...blank(),...dr,fotos:Array.isArray(dr.fotos)?dr.fotos:[],fotosUrl:[],fotosChanged:!!(dr.fotos&&dr.fotos.length)}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
   dirtyForm=false;
   $('#fTitle').textContent=rec?`Contenedor ${rec.data.tacho}`:'Nuevo contenedor';
-  $('#fSub').textContent=rec?(rec.status==='sent'?'Enviado · puedes corregirlo':'Guardado en el teléfono'):'Hoja de revisión';
+  $('#fSub').textContent=rec?(rec.status==='sent'?'Enviado · solo lectura':'Guardado en el teléfono'):'Hoja de revisión';
   $('#fDel').style.display=rec?'grid':'none';
+  // un registro enviado se abre para consultar, no para cambiar
+  $('#sheet').classList.toggle('visto',!!F.bloqueado);
+  $('#fSave').style.display=F.bloqueado?'none':'';
+  $('#fNext').style.display=F.bloqueado?'none':'';
   buildForm();
   $('#sheet').classList.add('open');$('#sheet').setAttribute('aria-hidden','false');
   $('#shBody').scrollTop=0;
@@ -670,7 +717,7 @@ function openForm(rec){
   if(!rec)setTimeout(()=>{if(!F.tacho)$('#fTacho').focus();},420);
 }
 function closeForm(force){
-  if(!force&&dirtyForm&&!F.id){LS.set('gtm-draft',{...F,foto:F.foto});}
+  if(!force&&dirtyForm&&!F.id){LS.set('gtm-draft',{...F,fotos:F.fotos});}
   $('#sheet').classList.remove('open');$('#sheet').setAttribute('aria-hidden','true');
   document.body.style.overflow='';stopGPS();F=null;
 }
@@ -681,7 +728,7 @@ $('#fClose').addEventListener('click',()=>{
 });
 $('#fDel').addEventListener('click',async()=>{
   const r=records.find(x=>x.id===F.id);if(!r)return;
-  const msg=r.status==='sent'?'Este registro ya se envió a Google Sheets. Se borrará solo de este teléfono (en el Sheet queda). ¿Continuar?':'¿Eliminar este contenedor? Aún no se ha enviado.';
+  const msg=r.status==='sent'?'Este registro ya está en Google Sheets y ahí se queda. Solo se va a quitar de este teléfono para liberar espacio. ¿Continuar?':'¿Eliminar este contenedor? Aún no se ha enviado.';
   if(!confirm(msg))return;
   await dbDel(r.id);records=records.filter(x=>x.id!==r.id);closeForm(true);renderAll();toast('Registro eliminado');
 });
@@ -728,11 +775,29 @@ function buildForm(){
     <textarea class="obs" id="fObs" placeholder="Escribe cualquier detalle adicional…">${esc(F.obs)}</textarea>
     <div class="photo" id="fPhoto"></div>`;
   paintPhoto();paintChips();paintSum();groupsFlag();
+  if(F.bloqueado)sellarForm();
+}
+
+/* Un registro enviado se sella de verdad: los campos quedan deshabilitados,
+   no solo tapados con CSS. Asi no hay forma de cambiarlos ni con el teclado
+   ni desde la consola del navegador. */
+function sellarForm(){
+  $('#fBody').querySelectorAll('input,select,textarea,button').forEach(el=>{
+    if(el.closest('.thumb')||el.closest('.grp-h')||el.hasAttribute('data-open'))return;
+    el.disabled=true; el.setAttribute('aria-disabled','true');
+  });
+  $('#fBody').querySelectorAll('textarea,input[type=text],.tacho').forEach(el=>el.readOnly=true);
 }
 
 /* eventos del formulario (delegados) */
 const body=$('#fBody');
 body.addEventListener('click',e=>{
+  if(F&&F.bloqueado){
+    // los acordeones y los enlaces de foto si funcionan: es para consultar
+    if(!e.target.closest('.grp-h')&&!e.target.closest('.thumb')&&!e.target.closest('[data-open]')){
+      toast('Este registro ya se envió y no se puede modificar');return;
+    }
+  }
   const segB=e.target.closest('.seg button');
   if(segB){const seg=segB.parentElement,k=seg.dataset.k,v=segB.dataset.v;
     if(v==='ok')delete F.items[k];else if(v==='a')F.items[k]='a';else F.items[k]=typeof F.items[k]==='number'?F.items[k]:1;
@@ -749,18 +814,23 @@ body.addEventListener('click',e=>{
   if(tg){const k=tg.dataset.t;F[k]=!F[k];tg.classList.toggle('on',F[k]);if(navigator.vibrate)navigator.vibrate(8);changed();paintSum();return;}
   const sg=e.target.closest('#fSugg button');
   if(sg){setTacho(sg.dataset.n);$('#fSugg').classList.remove('show');$('#fTacho').blur();return;}
-  if(e.target.closest('[data-rmphoto]')){F.foto=null;F.fotoUrl=null;F.fotoChanged=true;changed();paintPhoto();return;}
+  const rmf=e.target.closest('[data-rmfoto]');
+  if(rmf){F.fotos.splice(Number(rmf.dataset.rmfoto),1);F.fotosChanged=true;changed();paintPhoto();return;}
+  const rmu=e.target.closest('[data-rmurl]');
+  if(rmu){F.fotosUrl.splice(Number(rmu.dataset.rmurl),1);F.fotosChanged=true;changed();paintPhoto();return;}
   if(e.target.closest('[data-gps]')){startGPS();return;}
   const dup=e.target.closest('[data-open]');
   if(dup){const r=records.find(x=>x.id===dup.dataset.open);if(r){closeForm(true);setTimeout(()=>openForm(r),380);}return;}
 });
 body.addEventListener('input',e=>{
+  if(F&&F.bloqueado)return;
   if(e.target.id==='fTacho'){F.tacho=e.target.value.trim().toUpperCase();const hit=GEOMAP.get(F.tacho.toLowerCase());if(hit)applyGeo(hit);else{F.dist=null;}showSugg();changed();paintChips();}
   if(e.target.id==='fObs'){F.obs=e.target.value;changed();}
 });
 body.addEventListener('change',e=>{
+  if(F&&F.bloqueado)return;
   if(e.target.id==='fRuta'){F.ruta=e.target.value;changed();}
-  if(e.target.id==='fFile'){const f=e.target.files&&e.target.files[0];if(f)compressPhoto(f);}
+  if(e.target.id==='fFile'){const fs=e.target.files;if(fs&&fs.length){agregarFotos(fs);e.target.value='';}}
 });
 body.addEventListener('focusout',e=>{if(e.target.id==='fTacho')setTimeout(()=>$('#fSugg')&&$('#fSugg').classList.remove('show'),180);});
 body.addEventListener('keydown',e=>{if(e.target.id==='fTacho'&&e.key==='Enter'){e.preventDefault();$('#fSugg').classList.remove('show');e.target.blur();}});
@@ -828,35 +898,105 @@ function startGPS(){
 }
 function stopGPS(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;}if(F)paintChips();}
 
-/* foto: se reduce para no llenar el teléfono */
+/* ─────────── fotos: minimo CONFIG.MIN_FOTOS, sin tope arriba ───────────
+   Cada una se reduce antes de guardarla: una foto de celular pesa ~6 MB y
+   aqui queda en ~250 KB, para que cuatro por registro no llenen el telefono
+   cuando se acumulan sin señal. */
 function paintPhoto(){
   const el=$('#fPhoto');if(!el)return;
-  const src=F.foto||null,url=F.fotoUrl||null;
-  el.innerHTML=`${src?`<div class="thumb"><img src="${src}" alt="Foto del contenedor"><button data-rmphoto aria-label="Quitar foto">×</button></div>`:(url?`<div class="thumb" style="display:grid;place-items:center;font-size:11px;text-align:center;padding:4px"><a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--blue)">Ver foto</a><button data-rmphoto aria-label="Quitar foto">×</button></div>`:'')}
-    <label for="fFile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${src||url?'Cambiar foto':'Tomar foto (opcional)'}</label>
-    <input type="file" id="fFile" accept="image/*" capture="environment">`;
+  const n=cuantasFotos(F),min=CONFIG.MIN_FOTOS,falta=Math.max(0,min-n);
+  const pct=Math.min(100,Math.round(n/min*100));
+
+  const thumbs=F.fotos.map((src,i)=>
+      `<div class="thumb"><img src="${src}" alt="Foto ${i+1}"><span class="n">${i+1}</span>`+
+      (F.bloqueado?'':`<button data-rmfoto="${i}" aria-label="Quitar foto ${i+1}">×</button>`)+`</div>`)
+    .concat(F.fotosUrl.map((u,i)=>
+      `<div class="thumb"><a class="ver" href="${esc(u)}" target="_blank" rel="noopener">Ver foto ${F.fotos.length+i+1}</a>`+
+      (F.bloqueado?'':`<button data-rmurl="${i}" aria-label="Quitar foto">×</button>`)+`</div>`)).join('');
+
+  const cuenta = F.bloqueado
+    ? `<div class="fcount"><span>${plural(n,'foto')} ${n===1?'adjunta':'adjuntas'}</span></div>`
+    : `<div class="fcount">
+         <span>${n} de ${min} ${n===1?'foto':'fotos'}</span>
+         <span class="${falta?'falta':'listo'}">${falta?`falta${falta===1?'':'n'} ${falta}`:'completo'}</span>
+       </div>
+       <div class="fbar"><i style="width:${pct}%"></i></div>`;
+
+  el.innerHTML = cuenta + `<div class="fotos">${thumbs}</div>` + (F.bloqueado?'':
+    `<label for="fFile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>${n?'Agregar más fotos':`Tomar las ${min} fotos`}</label>
+     <input type="file" id="fFile" accept="image/*" multiple>`);
 }
-function compressPhoto(file){
-  const url=URL.createObjectURL(file),img=new Image();
-  img.onload=()=>{
-    const max=1280,s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');
-    c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
-    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-    F.foto=c.toDataURL('image/jpeg',.72);F.fotoUrl=null;F.fotoChanged=true;URL.revokeObjectURL(url);changed();paintPhoto();
-  };
-  img.onerror=()=>toast('No se pudo leer la foto');
-  img.src=url;
+
+/* Reduce una foto y devuelve el data URL. Se hace de a una para no dejar
+   cuatro imagenes enteras en memoria a la vez en un telefono de gama baja. */
+function reducirFoto(file){
+  return new Promise((ok,mal)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      try{
+        const max=CONFIG.FOTO_LADO,e=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');
+        c.width=Math.round(img.width*e);c.height=Math.round(img.height*e);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        const d=c.toDataURL('image/jpeg',CONFIG.FOTO_CALIDAD);
+        c.width=c.height=0;                 // libera el lienzo enseguida
+        URL.revokeObjectURL(url);ok(d);
+      }catch(err){URL.revokeObjectURL(url);mal(err);}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);mal(new Error('ilegible'));};
+    img.src=url;
+  });
+}
+
+async function agregarFotos(files){
+  const lista=[...files].filter(f=>f&&/^image\//.test(f.type||''));
+  if(!lista.length){toast('Eso no es una imagen');return;}
+  let sumadas=0,fallidas=0;
+  for(const f of lista){
+    try{F.fotos.push(await reducirFoto(f));sumadas++;F.fotosChanged=true;changed();paintPhoto();}
+    catch(e){fallidas++;}
+  }
+  if(fallidas)toast(`No pude leer ${plural(fallidas,'foto')}`);
+  else if(sumadas)toast(`${plural(sumadas,'foto')} ${sumadas===1?'agregada':'agregadas'}`);
+  avisarEspacio();
+}
+
+/* Las fotos son lo unico que pesa aqui. Si el telefono se esta llenando hay
+   que decirlo antes de que falle un guardado en plena ruta. */
+async function avisarEspacio(){
+  if(!navigator.storage||!navigator.storage.estimate)return;
+  try{
+    const {usage,quota}=await navigator.storage.estimate();
+    if(!quota)return;
+    const pct=usage/quota;
+    if(pct>0.85)toast(`Queda poco espacio en el teléfono (${Math.round(pct*100)}% usado). Conéctate para enviar lo pendiente.`);
+  }catch(e){}
 }
 
 /* guardar */
 async function saveForm(next){
+  if(F.bloqueado){toast('Este registro ya se envió y no se puede modificar');return;}
   if(!F.tacho){const t=$('#fTacho');t.classList.remove('err');void t.offsetWidth;t.classList.add('err');t.focus();toast('Escribe el número del contenedor');return;}
   if(!F.ruta){toast('Selecciona la ruta');$('#fRuta').focus();return;}
+  const nf=cuantasFotos(F),falta=CONFIG.MIN_FOTOS-nf;
+  if(falta>0){
+    toast(`Falta${falta===1?'':'n'} ${plural(falta,'foto')}: se necesitan ${CONFIG.MIN_FOTOS} para guardar`);
+    const el=$('#fPhoto');
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:320,easing:'ease-out'});}
+    return;
+  }
   const j=getJ(),now=Date.now(),old=F.id?records.find(r=>r.id===F.id):null;
   const r=old||{id:uuid(),createdAt:now};
   r.data={fecha:old?old.data.fecha:j.fecha,hora:old?old.data.hora:hhmm(),ciudad:old?(old.data.ciudad||j.ciudad):j.ciudad,r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,
     tacho:F.tacho,ruta:F.ruta,items:{...F.items},chocado:F.chocado,cambioCont:F.cambioCont,obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc,dist:F.dist};
-  if(F.fotoChanged){r.foto=F.foto||null;if(!F.foto){r.fotoClear=!!(old&&old.fotoUrl);r.fotoUrl=null;}}
+  if(F.fotosChanged){
+    r.fotos=F.fotos.slice();
+    r.fotosUrl=F.fotosUrl.slice();
+    delete r.foto; delete r.fotoUrl;        // deja atras la forma de una sola foto
+  }else if(!Array.isArray(r.fotos)){
+    r.fotos=fotosDe(r); r.fotosUrl=urlsDe(r);
+    delete r.foto; delete r.fotoUrl;
+  }
   r.updatedAt=now;r.status='pending';
   try{await dbPut(r);}catch(e){toast('No se pudo guardar en el teléfono. Revisa el espacio disponible.');return;}
   if(!old){records.push(r);lastNewId=r.id;}
@@ -891,9 +1031,17 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if
 $('#sCsv').addEventListener('click',()=>{
   if(!records.length){toast('Aún no hay registros para descargar');return;}
   const sorted=records.slice().sort((a,b)=>a.createdAt-b.createdAt);
-  const heads=['ID','Estado'].concat(toFields(sorted[0]).map(f=>f[0]).filter(h=>h!=='Foto'),['Foto']);
+  const maxF=Math.max(1,...sorted.map(r=>fotosDe(r).length+urlsDe(r).length));
+  const colsF=['Fotos'].concat(Array.from({length:maxF},(_,i)=>'Foto '+(i+1)));
+  const heads=['ID','Estado'].concat(toFields(sorted[0]).map(f=>f[0]),colsF);
   const q=v=>{const s=String(v??'');return /[",\n;]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;};
-  const lines=[heads.map(q).join(',')].concat(sorted.map(r=>{const m=Object.fromEntries(toFields(r));m.ID=r.id;m.Estado=r.status==='sent'?'Enviado':'Pendiente';m.Foto=r.fotoUrl||(r.foto?'(en el teléfono)':'');return heads.map(h=>q(m[h])).join(',');}));
+  const lines=[heads.map(q).join(',')].concat(sorted.map(r=>{
+    const m=Object.fromEntries(toFields(r));
+    m.ID=r.id;m.Estado=r.status==='sent'?'Enviado':'Pendiente';
+    const us=urlsDe(r),pend=fotosDe(r).length;
+    m.Fotos=us.length+pend;
+    for(let i=0;i<maxF;i++)m['Foto '+(i+1)]=us[i]||(i<us.length+pend?'(en el teléfono)':'');
+    return heads.map(h=>q(m[h])).join(',');}));
   const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`mantenimiento_respaldo_${todayISO()}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 });
