@@ -521,11 +521,49 @@ function filasGeo(txt){
    no estan asociadas a ninguna. Esas ultimas son rutas recien creadas en
    GEO TRACK MANAGER; en cuanto alguien catastre un contenedor en una de
    ellas, la ruta queda asociada a su ciudad y deja de salirle a los demas. */
-let RUTAS_LIBRES=LS.get('gtm-rutas-libres',[]);
+/* {lista:[rutas], usadas:{ruta:[ciudades]}} — lo trae el script, porque la
+   lista vive en la validacion de datos y el CSV publicado no la expone. */
+let CATALOGO=LS.get('gtm-rutas',{lista:[],usadas:{}});
+let RUTAS_LIBRES=[];
+
 function recalcularRutas(list){
-  const propias=list.map(x=>x[1]).filter(Boolean);
-  ROUTES=[...new Set([...propias,...RUTAS_LIBRES])]
-    .filter(Boolean).sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+  const mia=((sesionPortal()||{}).ciudad||'').trim().toUpperCase();
+  const usadas=CATALOGO.usadas||{};
+  const cat=CATALOGO.lista||[];
+
+  // sin catalogo todavia: nos valemos de las rutas que ya estan en las filas
+  if(!cat.length){
+    RUTAS_LIBRES=[];
+    ROUTES=[...new Set(list.map(x=>x[1]).filter(Boolean))]
+      .sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+    return;
+  }
+  const mias=[], libres=[];
+  cat.forEach(r=>{
+    const ciudades=usadas[r]||[];
+    if(!ciudades.length)libres.push(r);              // nadie la usa aun
+    else if(!mia||ciudades.includes(mia))mias.push(r); // es de mi ciudad
+  });
+  RUTAS_LIBRES=libres;
+  ROUTES=[...new Set([...mias,...libres])].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+}
+
+/* El catalogo se pide al script, no al CSV. Se guarda en el telefono para
+   que siga sirviendo sin señal. */
+async function traerCatalogo(){
+  if(!CONFIG.APPS_SCRIPT_URL||!navigator.onLine)return false;
+  try{
+    const r=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},redirect:'follow',
+      body:JSON.stringify({action:'rutas',hojaId:CONFIG.GEO_ID,hojaGid:CONFIG.GEO_GID})});
+    const j=await r.json();
+    if(j&&j.ok&&Array.isArray(j.lista)&&j.lista.length){
+      CATALOGO={lista:j.lista,usadas:j.usadas||{}};
+      LS.set('gtm-rutas',CATALOGO);
+      return true;
+    }
+  }catch(e){}
+  return false;
 }
 
 recalcularRutas(GEO.list);
@@ -559,19 +597,8 @@ async function refreshGeo(){
       // ciudad sin contenedores se queda sin contenedores, como debe ser.
       const hayColumna=todo.some(x=>x[4]);
       list=(ciudad&&hayColumna)?todo.filter(x=>x[4]===ciudad):todo;
-      RUTAS_LIBRES=[...new Set(todo.filter(x=>!x[4]).map(x=>x[1]).filter(Boolean))];
-      LS.set('gtm-rutas-libres',RUTAS_LIBRES);
-    }else{
-      // consulta aparte, pequeña: solo las rutas que aun no tienen ciudad
-      try{
-        const sueltas=filasGeo(await (await fetch(urlGeo(null),{cache:'no-store'})).text());
-        // aqui vale la lista vacia (puede no haber rutas sueltas), pero no la basura
-        if(!sueltas.length||pareceGeo(sueltas)){
-          RUTAS_LIBRES=[...new Set(sueltas.filter(x=>!x[4]).map(x=>x[1]).filter(Boolean))];
-          LS.set('gtm-rutas-libres',RUTAS_LIBRES);
-        }
-      }catch(e){}
     }
+    await traerCatalogo();
     GEO={t:Date.now(),ciudad,list};LS.set('gtm-geotrack',GEO);
     GEOMAP=new Map(list.map(x=>[x[0].toLowerCase(),x]));
     recalcularRutas(list);
@@ -762,7 +789,16 @@ async function syncNow(){
         if(n&&!GEOMAP.has(n)){
           const fila=[r.data.tacho,(r.data.ruta||'').toUpperCase(),r.data.lat,r.data.lng,(r.data.ciudad||'').toUpperCase()];
           GEO.list.push(fila);GEOMAP.set(n,fila);LS.set('gtm-geotrack',GEO);
-          if(fila[1]&&!ROUTES.includes(fila[1]))ROUTES.push(fila[1]);
+          const ru=fila[1];
+          if(ru){
+            const u=CATALOGO.usadas||(CATALOGO.usadas={});
+            if(!u[ru])u[ru]=[];
+            const ci=(r.data.ciudad||'').toUpperCase();
+            if(ci&&!u[ru].includes(ci))u[ru].push(ci);
+            if(!(CATALOGO.lista||[]).includes(ru))CATALOGO.lista.push(ru);
+            LS.set('gtm-rutas',CATALOGO);
+          }
+          recalcularRutas(GEO.list);
         }
       }
       if(r.data.nuevo&&j.geo&&!j.geo.ok){
