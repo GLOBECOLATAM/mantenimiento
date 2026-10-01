@@ -188,6 +188,8 @@ input,textarea,select{font:inherit;color:inherit}
 .it-row{display:flex;align-items:center;gap:10px}
 .it-n{flex:1;font-size:14.5px;font-weight:500;line-height:1.25}
 .seg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);width:206px;flex:0 0 auto;padding:3px;border-radius:13px;background:var(--surface-2);border:1px solid var(--line)}
+.seg.dos{grid-template-columns:repeat(2,1fr);width:142px}
+.seg.dos .ind{width:calc((100% - 6px)/2)}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);border-radius:10px;transform:translateX(calc(var(--i,0)*100%));transition:transform .32s cubic-bezier(.2,.9,.25,1.15),background .3s;background:rgba(29,158,117,.2)}
 .seg[data-s="a"] .ind{background:var(--amber)}
 .seg[data-s="c"] .ind{background:var(--blue)}
@@ -222,6 +224,21 @@ input,textarea,select{font:inherit;color:inherit}
 .sheet.visto #fBody .seg button:not(.on),.sheet.visto #fBody [data-q],
 .sheet.visto #fBody [data-allok],.sheet.visto #fBody .photo label{opacity:.4}
 .sheet.visto #fBody .thumb,.sheet.visto #fBody .grp-h,.sheet.visto #fBody [data-open]{pointer-events:auto}
+.bbar .in:has(#btnCat:not([style*="none"])){display:grid;grid-template-columns:auto 1fr;gap:10px}
+.bbar #btnCat{white-space:nowrap}
+/* ficha del contenedor nuevo: lo que va a GEO TRACK MANAGER */
+.geo{padding:14px 15px;border-radius:17px;margin-bottom:16px;
+  background:color-mix(in srgb,var(--blue) 10%,transparent);border:1px solid color-mix(in srgb,var(--blue) 30%,transparent)}
+.geo h5{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--blue);margin-bottom:4px}
+.geo p{font-size:12.5px;line-height:1.5;color:var(--ink-2);margin-bottom:12px}
+.geo .par{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.geo .cmp{display:block}
+.geo .cmp span{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.geo .cmp b{display:block;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.geo .fijo{padding:9px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.geo .aviso{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.45;padding:10px 12px;border-radius:12px;margin-top:4px}
+.geo .aviso.mal{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red)}
+.geo .aviso.bien{background:color-mix(in srgb,var(--teal) 13%,transparent);color:var(--teal)}
 .photo{margin-top:10px}
 .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:10px}
 .fotos:empty{display:none}
@@ -313,6 +330,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
 </div>
 
 <div class="bbar"><div class="in">
+  <button class="secondary" id="btnCat" style="display:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Contenedor nuevo</button>
   <button class="primary" id="btnNew"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Revisar contenedor</button>
 </div></div>
 
@@ -379,17 +397,22 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
    CONFIGURACIÓN
    ===================================================================== */
 const CONFIG={
-  APPS_SCRIPT_URL:"https://script.google.com/macros/s/AKfycbzMYQA4jlWqLd3FhJS3Di7Mbzt_s2hixBKlE3qHGHyw4SuQRtoa3BbqgmsHD5bLZnR-/exec",   // ← pega aquí la URL de la aplicación web de Apps Script
+  APPS_SCRIPT_URL:"",   // ← pega aquí la URL de la aplicación web de Apps Script
   SHEET_BASE:"Mantenimiento",        // cada ciudad tendra su pestaña: «Mantenimiento · AMBATO»
   MIN_FOTOS:4,                       // obligatorias para poder guardar; pueden subir mas
   FOTO_LADO:1280,                    // lado mayor al que se reduce cada foto
   FOTO_CALIDAD:0.68,                 // 4 fotos ≈ 1,5 MB por registro sin señal
   // Quienes pueden aparecer como Responsable 2 (etiqueta de la columna K)
   PERMISO_EQUIPO:"mantenimiento_contenedor",
+  // Quien puede catastrar contenedores nuevos (etiqueta de la columna K)
+  PERMISO_CATASTRO:"catastro_contenedor",
+  // Plantilla del enlace de WhatsApp; si se deja vacio, el servidor copia
+  // el de la ultima fila de FICHA TECNICA para no inventarse un formato.
+  GEO_WA:"",
   // Hoja GEO TRACK MANAGER: una sola pestaña para todas las ciudades
   GEO_ID:"1gXYMMPawfS16ed-8cYmsUWuWuJPHdxBM2E7tKMUgbr4",
   GEO_GID:"237265956",
-  GEO_COL_CIUDAD:"K"   // letra de la columna CIUDAD en esa pestaña
+  GEO_COL_CIUDAD:"L"   // en FICHA TECNICA la K es RECOLECCION y la L es CIUDAD
 };
 
 /* Puntos de revisión (mismos de la hoja «Mantenimiento») */
@@ -401,14 +424,18 @@ const I={
   pedal:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h9l7-6"/><path d="M8 18l3-8h4"/></svg>'
 };
 const GROUPS=[
-  {id:'senal',t:'Identificación y señalética',ic:I.tag,items:[['numeracion','Numeración'],['logo_gidsa','Logo Gidsa'],['logo_ambato','Logo Ambato'],['no_estacionarse','No estacionarse'],['adhesivo_lateral','Adhesivo lateral'],['codigo_qr','Código QR'],['grafitis','Grafitis']]},
-  {id:'tapa',t:'Tapa',ic:I.lid,items:[['tapa','Tapa contenedor'],['perno_tapa','Perno de tapa'],['caucho_tapas','Caucho de tapas'],['manilla','Manilla'],['tapa_travesano','Tapa travesaño']]},
-  {id:'amort',t:'Amortiguación',ic:I.spring,items:[['amortiguador','Amortiguador'],['limitador_amort','Limitador amortiguador'],['soporte_amort','Soporte amortiguador'],['resorte','Resorte vasculam']]},
-  {id:'estr',t:'Estructura y mecanismo',ic:I.frame,items:[['cables','Cables'],['linea_centraje','Línea de centraje'],['triangulo','Triángulo lateral'],['remaches','Remaches'],['rodillo','Rodillo de toma'],['piso','Piso contenedor'],['tapon','Tapón']]},
+  {id:'senal',t:'Adhesivos y señalética',ic:I.tag,items:[['numeracion','Numeración'],['no_estacionarse','No estacionarse'],['adhesivo_lateral','Adhesivo lateral'],['linea_centraje','Línea de centraje'],['grafitis','Grafitis']]},
+  {id:'tapa',t:'Tapa',ic:I.lid,items:[['tapa','Tapa contenedor'],['marco_tapa','Marco de tapa'],['perno_tapa','Perno de tapa'],['caucho_tapas','Caucho de tapas'],['perno_autoperf','Perno autoperforante'],['manilla','Manilla']]},
+  {id:'amort',t:'Amortiguación',ic:I.spring,items:[['amortiguador','Amortiguador'],['limitador_amort','Limitador amortiguador'],['soporte_amort','Soporte amortiguador']]},
+  {id:'estr',t:'Estructura y mecanismo',ic:I.frame,items:[['cables','Cables'],['resorte','Resorte vasculam'],['triangulo','Triángulo lateral'],['remaches','Remaches'],['rodillo','Rodillo de toma'],['piso','Piso contenedor'],['tapon','Tapón']]},
   {id:'pedal',t:'Pedal',ic:I.pedal,items:[['pedal','Pedal'],['soporte_pedal','Soporte de pedal']]}
 ];
-/* orden de columnas igual al Excel */
-const ORDER=['numeracion','logo_gidsa','logo_ambato','no_estacionarse','adhesivo_lateral','grafitis','tapa','perno_tapa','caucho_tapas','amortiguador','limitador_amort','soporte_amort','manilla','cables','linea_centraje','triangulo','remaches','rodillo','resorte','codigo_qr','piso','tapon','pedal','soporte_pedal','tapa_travesano'];
+/* Items que solo admiten CAMBIO (sin ajuste): o esta bien, o se cambia. */
+const SOLO_CAMBIO=new Set(['grafitis']);
+/* orden de columnas igual al Excel; los que se quitaron del formulario
+   (Logo Gidsa, Logo Ambato, Código QR, Tapa travesaño) ya no se escriben:
+   las columnas viejas siguen en la hoja con su historico. */
+const ORDER=['numeracion','no_estacionarse','adhesivo_lateral','linea_centraje','grafitis','tapa','marco_tapa','perno_tapa','caucho_tapas','perno_autoperf','manilla','amortiguador','limitador_amort','soporte_amort','cables','resorte','triangulo','remaches','rodillo','piso','tapon','pedal','soporte_pedal'];
 const LABEL={};GROUPS.forEach(g=>g.items.forEach(([k,l])=>LABEL[k]=l));
 
 /* =====================================================================
@@ -477,7 +504,7 @@ function filasGeo(txt){
   for(const r of rows.slice(start)){
     const n=(r[0]||'').trim();if(!n)continue;
     const lat=parseFloat((r[1]||'').replace(',','.')),lng=parseFloat((r[2]||'').replace(',','.'));
-    list.push([n,(r[4]||'').trim().toUpperCase(),isFinite(lat)?lat:null,isFinite(lng)?lng:null,(r[10]||'').trim().toUpperCase()]);
+    list.push([n,(r[4]||'').trim().toUpperCase(),isFinite(lat)?lat:null,isFinite(lng)?lng:null,(r[11]||'').trim().toUpperCase()]);
   }
   return list;
 }
@@ -512,6 +539,15 @@ async function refreshGeo(){
    ===================================================================== */
 const getJ=()=>LS.get('gtm-jornada',null);
 function sesionPortal(){const s=LS.get('gs-sesion',null);return (s&&s.exp>Date.now())?s:null;}
+/* Los permisos vienen de la columna «Permisos acceso» de la hoja de
+   identificaciones, por la sesion del portal. Se comparan sin tildes ni
+   mayusculas para que la hoja pueda escribirse como sea. */
+const sinTildes=t=>String(t??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+function puede(permiso){
+  const ses=sesionPortal();if(!ses)return false;
+  const mios=new Set((ses.permisos||[]).map(sinTildes));
+  return mios.has(sinTildes(permiso));
+}
 /* Golpecito al script para que Google lo levante antes de que haga falta.
    Sin datos, sin esperar respuesta: si falla, no pasa nada. */
 let despiertoT=0;
@@ -636,7 +672,7 @@ function toFields(r){
   const f=[['Fecha',d.fecha],['Hora',d.hora],['Ciudad',d.ciudad||''],['Responsable 1',d.r1],['Responsable 2',d.r2||''],['# Tacho',d.tacho],['Ruta',d.ruta||''],
     ['Latitud',d.lat??''],['Longitud',d.lng??''],['Precisión GPS (m)',d.acc!=null?Math.round(d.acc):''],['Distancia a GEO TRACK (m)',d.dist!=null?Math.round(d.dist):'']];
   for(const k of ORDER){const v=d.items[k];f.push([LABEL[k],v==null?'':v]);}
-  f.push(['Chocado',d.chocado?1:''],['Cambio Cont.',d.cambioCont?1:''],['Total cambios',t.c],['Total ajustes',t.a],['Observaciones',d.obs||''],
+  f.push(['Tipo',d.nuevo?'CATASTRO · contenedor nuevo':'Mantenimiento'],['Limpieza / lavado',d.limpieza?1:''],['Golpes',d.golpes?1:''],['Chocado',d.chocado?1:''],['Cambio Cont.',d.cambioCont?1:''],['Total cambios',t.c],['Total ajustes',t.a],['Observaciones',d.obs||''],
     ['Registrado',stamp(r.createdAt)],['Última edición',stamp(r.updatedAt)]);
   return f;
 }
@@ -648,6 +684,17 @@ async function syncNow(){
   for(const r of pend){
     try{
       const payload={sheet:hojaDe(r),id:r.id,fields:toFields(r)};
+      if(r.data.nuevo){
+        // el servidor agrega la fila en FICHA TECNICA copiando el formato de
+        // la ultima fila: asi el enlace de WhatsApp y los demas campos salen
+        // iguales a los que ya tienes, sin que yo invente ningun formato
+        payload.geo={
+          numero:r.data.tacho, x:r.data.lat, y:r.data.lng,
+          ruta:r.data.ruta||'', ciudad:r.data.ciudad||'',
+          gidsa:r.data.gidsa||'N/A', qr:r.data.qr||'NO',
+          wa:CONFIG.GEO_WA||'', hojaId:CONFIG.GEO_ID, hojaGid:CONFIG.GEO_GID
+        };
+      }
       const pend=fotosDe(r);
       if(pend.length){payload.fotos=pend;payload.fotoName=`${r.data.fecha}_${r.data.tacho}_${r.id.slice(0,6)}`;}
       const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
@@ -661,6 +708,24 @@ async function syncNow(){
       if(Array.isArray(j.fotoUrls)&&j.fotoUrls.length){r.fotosUrl=j.fotoUrls;}
       r.fotos=[];delete r.foto;delete r.fotoUrl;   // libera el espacio del teléfono
       if(j.cerrado)r.cerrado=true;
+      if(r.data.nuevo&&j.geo&&j.geo.ok){
+        // el contenedor ya existe: entra a la base local para que nadie
+        // vuelva a catastrarlo con el mismo numero
+        r.geoFila=j.geo.fila;
+        const n=String(r.data.tacho||'').toLowerCase();
+        if(n&&!GEOMAP.has(n)){
+          const fila=[r.data.tacho,(r.data.ruta||'').toUpperCase(),r.data.lat,r.data.lng,(r.data.ciudad||'').toUpperCase()];
+          GEO.list.push(fila);GEOMAP.set(n,fila);LS.set('gtm-geotrack',GEO);
+          if(fila[1]&&!ROUTES.includes(fila[1]))ROUTES.push(fila[1]);
+        }
+      }
+      if(r.data.nuevo&&j.geo&&!j.geo.ok){
+        // la hoja de mantenimiento si guardo; lo que fallo es GEO TRACK MANAGER
+        r.geoError=j.geo.error||'desconocido';
+        toast(j.geo.error==='duplicado'
+          ? `El contenedor ${r.data.tacho} ya estaba en GEO TRACK MANAGER (fila ${j.geo.fila}). El registro sí se guardó.`
+          : 'El registro se guardó, pero no pude agregarlo a GEO TRACK MANAGER. Avisa a soporte.');
+      }
       await dbPut(r);netState='online';lastSync=Date.now();LS.set('gtm-lastsync',lastSync);
     }catch(e){netState=navigator.onLine?'nosignal':'offline';console.warn('Envío pendiente:',e);break;}
   }
@@ -689,21 +754,24 @@ setInterval(()=>{if(navigator.onLine)syncNow();},30000);
    FORMULARIO DE CONTENEDOR
    ===================================================================== */
 let F=null,dirtyForm=false,gpsWatch=null;
-const blank=()=>({id:null,tacho:'',ruta:'',items:{},chocado:false,cambioCont:false,obs:'',fotos:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false});
+const blank=()=>({id:null,tacho:'',ruta:'',items:{},limpieza:false,golpes:false,chocado:false,cambioCont:false,obs:'',fotos:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false,nuevo:false,qr:'NO',gidsa:'N/A'});
 /* Los registros viejos guardaban UNA foto en «foto»/«fotoUrl». Esto los lee
    igual que los nuevos, para no perder nada de lo que ya esta en los telefonos. */
 const fotosDe=r=>Array.isArray(r.fotos)?r.fotos.filter(Boolean):(r.foto?[r.foto]:[]);
 const urlsDe =r=>Array.isArray(r.fotosUrl)?r.fotosUrl.filter(Boolean):(r.fotoUrl?[r.fotoUrl]:[]);
 const cuantasFotos=f=>f.fotos.length+f.fotosUrl.length;
-function openForm(rec){
+function openForm(rec,nuevo){
   if(!getJ()){openJornada();return;}
-  if(rec){const d=rec.data;F={...blank(),id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',
+  if(nuevo&&!puede(CONFIG.PERMISO_CATASTRO)){toast('No tienes permiso para catastrar contenedores');return;}
+  if(rec){const d=rec.data;F={...blank(),id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},limpieza:!!d.limpieza,golpes:!!d.golpes,chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',nuevo:!!d.nuevo,
     fotos:fotosDe(rec),fotosUrl:urlsDe(rec),lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist,
-    bloqueado:rec.status==='sent'};}
+    qr:d.qr||'NO',gidsa:d.gidsa||'N/A',bloqueado:rec.status==='sent'};}
+  else if(nuevo){F={...blank(),nuevo:true};}
   else{const dr=LS.get('gtm-draft',null);F=dr&&!dr.id?{...blank(),...dr,fotos:Array.isArray(dr.fotos)?dr.fotos:[],fotosUrl:[],fotosChanged:!!(dr.fotos&&dr.fotos.length)}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
   dirtyForm=false;
-  $('#fTitle').textContent=rec?`Contenedor ${rec.data.tacho}`:'Nuevo contenedor';
-  $('#fSub').textContent=rec?(rec.status==='sent'?'Enviado · solo lectura':'Guardado en el teléfono'):'Hoja de revisión';
+  $('#fTitle').textContent=rec?`Contenedor ${rec.data.tacho}`:(F.nuevo?'Contenedor nuevo':'Nuevo contenedor');
+  $('#fSub').textContent=rec?(rec.status==='sent'?'Enviado · solo lectura':'Guardado en el teléfono')
+    :(F.nuevo?'Catastro · se agrega a GEO TRACK MANAGER':'Hoja de revisión');
   $('#fDel').style.display=rec?'grid':'none';
   // un registro enviado se abre para consultar, no para cambiar
   $('#sheet').classList.toggle('visto',!!F.bloqueado);
@@ -713,11 +781,11 @@ function openForm(rec){
   $('#sheet').classList.add('open');$('#sheet').setAttribute('aria-hidden','false');
   $('#shBody').scrollTop=0;
   document.body.style.overflow='hidden';
-  if(F.lat==null)startGPS();else paintGPS();
+  if(F.lat==null||F.nuevo)startGPS();else paintGPS();
   if(!rec)setTimeout(()=>{if(!F.tacho)$('#fTacho').focus();},420);
 }
 function closeForm(force){
-  if(!force&&dirtyForm&&!F.id){LS.set('gtm-draft',{...F,fotos:F.fotos});}
+  if(!force&&dirtyForm&&!F.id&&!F.nuevo){LS.set('gtm-draft',{...F,fotos:F.fotos});}
   $('#sheet').classList.remove('open');$('#sheet').setAttribute('aria-hidden','true');
   document.body.style.overflow='';stopGPS();F=null;
 }
@@ -735,15 +803,49 @@ $('#fDel').addEventListener('click',async()=>{
 
 function itemState(k){const v=F.items[k];return v==='a'?'a':(typeof v==='number'?'c':'ok');}
 function itemHTML(k,l){
-  const s=itemState(k),i={ok:0,a:1,c:2}[s],q=typeof F.items[k]==='number'?F.items[k]:1;
+  const s=itemState(k),q=typeof F.items[k]==='number'?F.items[k]:1;
+  const dos=SOLO_CAMBIO.has(k);                       // sin la opcion «Ajuste»
+  const i=dos?(s==='c'?1:0):{ok:0,a:1,c:2}[s];
   return `<div class="it" id="it-${k}">
     <div class="it-row"><div class="it-n">${esc(l)}</div>
-      <div class="seg" data-k="${k}" data-s="${s}" style="--i:${i}"><span class="ind"></span>
-        <button data-v="ok" aria-label="${esc(l)}: bien">OK</button><button data-v="a" aria-label="${esc(l)}: ajuste">Ajuste</button><button data-v="c" aria-label="${esc(l)}: cambio">Cambio</button>
+      <div class="seg${dos?' dos':''}" data-k="${k}" data-s="${s}" style="--i:${i}"><span class="ind"></span>
+        <button data-v="ok" aria-label="${esc(l)}: bien">OK</button>${dos?'':`<button data-v="a" aria-label="${esc(l)}: ajuste">Ajuste</button>`}<button data-v="c" aria-label="${esc(l)}: cambio">Cambio</button>
       </div></div>
     <div class="qty${s==='c'?' show':''}"><span>Piezas cambiadas</span><div class="step"><button data-q="-1" data-k="${k}" aria-label="Menos">−</button><output id="q-${k}">${q}</output><button data-q="1" data-k="${k}" aria-label="Más">+</button></div></div>
   </div>`;
 }
+/* Lo que va a ir a FICHA TECNICA de GEO TRACK MANAGER. Las coordenadas no se
+   escriben a mano: salen del GPS, que es el punto de catastrar en sitio. */
+function fichaGeo(){
+  const j=getJ(),ciudad=(j&&j.ciudad)||'';
+  const hay=F.tacho&&GEOMAP.has(F.tacho.toLowerCase());
+  const coord=(F.lat!=null&&F.lng!=null);
+  return `<div class="geo">
+    <h5>Contenedor nuevo</h5>
+    <p>Esto se va a agregar a GEO TRACK MANAGER. Párate junto al contenedor para que el punto quede bien.</p>
+    <div class="par">
+      <label class="cmp"><span>X · latitud</span><b class="fijo" id="gX">${coord?F.lat.toFixed(6):'esperando GPS…'}</b></label>
+      <label class="cmp"><span>Y · longitud</span><b class="fijo" id="gY">${coord?F.lng.toFixed(6):'esperando GPS…'}</b></label>
+    </div>
+    <div class="par">
+      <label class="cmp"><span>Ciudad</span><b class="fijo">${esc(ciudad||'—')}</b></label>
+      <label class="cmp"><span>Requiere QR</span>
+        <select class="sel" id="gQR"><option value="NO"${F.qr!=='SI'?' selected':''}>NO</option><option value="SI"${F.qr==='SI'?' selected':''}>SI</option></select></label>
+    </div>
+    <label class="cmp" style="margin-bottom:9px"><span>Número GIDSA</span>
+      <input class="sel" id="gGidsa" value="${esc(F.gidsa||'N/A')}" placeholder="N/A" autocomplete="off"></label>
+    ${F.tacho?(hay
+      ? `<div class="aviso mal"><b>El número ${esc(F.tacho)} ya existe en GEO TRACK MANAGER.</b> Revisa si es el mismo contenedor o usa otro número.</div>`
+      : `<div class="aviso bien">El número ${esc(F.tacho)} está libre.</div>`):''}
+  </div>`;
+}
+
+function pintarFicha(){
+  const vieja=document.querySelector('.geo');if(!vieja||!F.nuevo)return;
+  const t=document.createElement('div');t.innerHTML=fichaGeo();
+  vieja.replaceWith(t.firstElementChild);
+}
+
 function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {c,a};}
 function groupChip(g){const {c,a}=groupStatus(g);if(!c&&!a)return '<span class="grp-s">Todo OK</span>';return `<span class="grp-s has">${[c?plural(c,'cambio'):'',a?plural(a,'ajuste'):''].filter(Boolean).join(' · ')}</span>`;}
 function buildForm(){
@@ -759,16 +861,21 @@ function buildForm(){
       <select class="sel" id="fRuta"><option value="">Selecciona la ruta</option>${routeOpts.map(r=>`<option${r===F.ruta?' selected':''}>${esc(r)}</option>`).join('')}</select></div>
     </div>
     <div class="chips" id="fChips"></div>
+    ${F.nuevo?fichaGeo():''}
 
-    <div class="sec-t"><h4>Revisión</h4><div class="legend"><span><i style="background:var(--teal)"></i>OK</span><span><i style="background:var(--amber)"></i>Ajuste</span><span><i style="background:var(--blue)"></i>Cambio</span></div></div>
+    <div class="sec-t"><h4>${F.nuevo?'Estado al catastrar':'Revisión'}</h4><div class="legend"><span><i style="background:var(--teal)"></i>OK</span><span><i style="background:var(--amber)"></i>Ajuste</span><span><i style="background:var(--blue)"></i>Cambio</span></div></div>
     ${GROUPS.map((g,gi)=>`<div class="grp${gi===0?' open':''}" id="g-${g.id}">
       <button class="grp-h" data-g="${g.id}"><span class="grp-ic">${g.ic}</span><span class="grp-t"><b>${esc(g.t)}</b><small>${plural(g.items.length,'punto')}</small></span><span id="gs-${g.id}">${groupChip(g)}</span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
       <div class="grp-b"><div><div class="grp-tools"><button data-allok="${g.id}">Marcar todo OK</button></div>${g.items.map(([k,l])=>itemHTML(k,l)).join('')}</div></div>
     </div>`).join('')}
 
+    <div class="sec-t"><h4>Contenedor · limpieza</h4></div>
+    <button class="tg${F.limpieza?' on':''}" data-t="limpieza"><span class="tx"><b>Necesita lavado</b><small>El contenedor requiere limpieza o lavado</small></span><span class="sw"></span></button>
+
     <div class="sec-t"><h4>Estado general</h4></div>
-    <button class="tg${F.chocado?' on':''}" data-t="chocado"><span class="tx"><b>Chocado</b><small>El contenedor presenta golpes</small></span><span class="sw"></span></button>
+    <button class="tg${F.golpes?' on':''}" data-t="golpes"><span class="tx"><b>Golpes</b><small>Presenta abolladuras o deformación</small></span><span class="sw"></span></button>
+    <button class="tg${F.chocado?' on':''}" data-t="chocado"><span class="tx"><b>Chocado</b><small>Fue impactado por un vehículo</small></span><span class="sw"></span></button>
     <button class="tg${F.cambioCont?' on':''}" data-t="cambioCont"><span class="tx"><b>Cambio de contenedor</b><small>Se reemplazó el contenedor completo</small></span><span class="sw"></span></button>
 
     <div class="sec-t"><h4>Observaciones</h4><small>Opcional</small></div>
@@ -824,12 +931,23 @@ body.addEventListener('click',e=>{
 });
 body.addEventListener('input',e=>{
   if(F&&F.bloqueado)return;
-  if(e.target.id==='fTacho'){F.tacho=e.target.value.trim().toUpperCase();const hit=GEOMAP.get(F.tacho.toLowerCase());if(hit)applyGeo(hit);else{F.dist=null;}showSugg();changed();paintChips();}
+  if(e.target.id==='gGidsa'){F.gidsa=e.target.value.trim();changed();}
+  if(e.target.id==='fTacho'){
+    F.tacho=e.target.value.trim().toUpperCase();
+    const hit=GEOMAP.get(F.tacho.toLowerCase());
+    // en catastro el contenedor TODAVIA no existe: no se le copia la ubicacion,
+    // las coordenadas tienen que salir del GPS de quien esta parado ahi
+    if(hit&&!F.nuevo)applyGeo(hit);else F.dist=null;
+    if(!F.nuevo)showSugg();
+    changed();paintChips();
+    if(F.nuevo)pintarFicha();
+  }
   if(e.target.id==='fObs'){F.obs=e.target.value;changed();}
 });
 body.addEventListener('change',e=>{
   if(F&&F.bloqueado)return;
   if(e.target.id==='fRuta'){F.ruta=e.target.value;changed();}
+  if(e.target.id==='gQR'){F.qr=e.target.value;changed();}
   if(e.target.id==='fFile'){const fs=e.target.files;if(fs&&fs.length){agregarFotos(fs);e.target.value='';}}
 });
 body.addEventListener('focusout',e=>{if(e.target.id==='fTacho')setTimeout(()=>$('#fSugg')&&$('#fSugg').classList.remove('show'),180);});
@@ -838,7 +956,7 @@ body.addEventListener('keydown',e=>{if(e.target.id==='fTacho'&&e.key==='Enter'){
 function changed(){dirtyForm=true;if(F&&!F.id)LS.set('gtm-draft',F);paintSum();}
 function paintItem(k){
   const s=itemState(k),seg=document.querySelector(`.seg[data-k="${k}"]`);if(!seg)return;
-  seg.dataset.s=s;seg.style.setProperty('--i',{ok:0,a:1,c:2}[s]);
+  seg.dataset.s=s;seg.style.setProperty('--i',SOLO_CAMBIO.has(k)?(s==='c'?1:0):{ok:0,a:1,c:2}[s]);
   const row=$('#it-'+k),qty=row.querySelector('.qty');qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=F.items[k];
   paintGroup(k);
 }
@@ -884,7 +1002,7 @@ function paintChips(){
   if(dup)out.push(`<span class="chip bad">Ya lo revisaste hoy · <button data-open="${dup.id}">Abrir</button></span>`);
   el.innerHTML=out.join('');
 }
-function paintGPS(){calcDist();paintChips();}
+function paintGPS(){calcDist();paintChips();if(F&&F.nuevo)pintarFicha();}
 function startGPS(){
   if(!('geolocation' in navigator)){paintChips();return;}
   stopGPS();
@@ -977,6 +1095,19 @@ async function saveForm(next){
   if(F.bloqueado){toast('Este registro ya se envió y no se puede modificar');return;}
   if(!F.tacho){const t=$('#fTacho');t.classList.remove('err');void t.offsetWidth;t.classList.add('err');t.focus();toast('Escribe el número del contenedor');return;}
   if(!F.ruta){toast('Selecciona la ruta');$('#fRuta').focus();return;}
+  if(F.nuevo){
+    if(GEOMAP.has(F.tacho.toLowerCase())){
+      toast(`El número ${F.tacho} ya existe en GEO TRACK MANAGER`);
+      $('#fTacho').focus();return;
+    }
+    if(F.lat==null||F.lng==null){
+      toast('Falta la ubicación. Espera a que el GPS encuentre el punto.');
+      const g=document.querySelector('.geo');if(g)g.scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    // un punto con mucho error manda el contenedor a otra cuadra
+    if(F.acc!=null&&F.acc>40&&!confirm(`El GPS tiene ${Math.round(F.acc)} m de error. Si guardas así, el punto puede quedar lejos del contenedor.\n\n¿Guardar de todos modos?`))return;
+  }
   const nf=cuantasFotos(F),falta=CONFIG.MIN_FOTOS-nf;
   if(falta>0){
     toast(`Falta${falta===1?'':'n'} ${plural(falta,'foto')}: se necesitan ${CONFIG.MIN_FOTOS} para guardar`);
@@ -988,7 +1119,7 @@ async function saveForm(next){
   const j=getJ(),now=Date.now(),old=F.id?records.find(r=>r.id===F.id):null;
   const r=old||{id:uuid(),createdAt:now};
   r.data={fecha:old?old.data.fecha:j.fecha,hora:old?old.data.hora:hhmm(),ciudad:old?(old.data.ciudad||j.ciudad):j.ciudad,r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,
-    tacho:F.tacho,ruta:F.ruta,items:{...F.items},chocado:F.chocado,cambioCont:F.cambioCont,obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc,dist:F.dist};
+    tacho:F.tacho,ruta:F.ruta,items:{...F.items},limpieza:F.limpieza,golpes:F.golpes,chocado:F.chocado,cambioCont:F.cambioCont,obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc,dist:F.dist,nuevo:F.nuevo};
   if(F.fotosChanged){
     r.fotos=F.fotos.slice();
     r.fotosUrl=F.fotosUrl.slice();
@@ -1011,7 +1142,8 @@ async function saveForm(next){
 }
 $('#fSave').addEventListener('click',()=>saveForm(false));
 $('#fNext').addEventListener('click',()=>saveForm(true));
-$('#btnNew').addEventListener('click',()=>openForm(null));
+$('#btnNew').addEventListener('click',()=>openForm(null,false));
+$('#btnCat').addEventListener('click',()=>openForm(null,true));
 
 /* =====================================================================
    RESUMEN Y RESPALDO
@@ -1094,6 +1226,7 @@ function avisarVersion(){
 function renderAll(){renderJornada();renderList();renderNet();}
 // Si la persona entró por el portal, le dejamos el camino de regreso
 if(sesionPortal()){$('#volver').style.display='grid';$('#jVolver').style.display='block';}
+if(puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
 (async function start(){
   paintThemeBtn();despertar();
   try{await dbOpen();records=await dbAll();}catch(e){toast('Este navegador no permite guardar datos. Usa Chrome o Safari actualizados.');}
