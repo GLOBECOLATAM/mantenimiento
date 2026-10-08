@@ -301,6 +301,36 @@ input,textarea,select{font:inherit;color:inherit}
 footer{text-align:center;font-size:12px;color:var(--muted);padding:6px 0 140px}
 footer b{background:var(--grad-text);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gradMove 9s linear infinite}
 
+/* ─── preventivo / correctivo ─── */
+.seg[data-sin][data-s="x"] .ind,.seg.corr[data-s="n"] .ind{background:var(--red)}
+.seg.corr[data-s="h"] .ind{background:var(--teal)}
+.seg.corr[data-s="p"] .ind{background:var(--surface-2)}
+.seg[data-sin][data-s="x"] button.on,.seg.corr button.on{color:#fff}
+.seg[data-sin][data-s="ok"] button.on{color:var(--teal)}
+.seg.corr[data-s="p"] button.on{color:var(--ink)}
+.seg.corr button{font-size:11.5px}
+.it-n small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-top:3px}
+.it.cerrado-ya{opacity:.55}
+.tag.h{background:rgba(29,158,117,.15);color:var(--teal)}
+.chip.prec{background:rgba(55,138,221,.14);color:var(--blue);font-weight:600}
+.chip.prec.va{animation:lat 1.2s infinite}
+.buscar{margin-top:6px}
+.bq{position:relative;margin-bottom:10px}
+.bq svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.bq input{width:100%;padding:14px 16px 14px 44px;border-radius:16px;border:1px solid var(--line);background:var(--surface);font-size:16px;outline:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.bq input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(55,138,221,.15)}
+.filtros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.filtros .sel{font-size:13.5px;padding:11px 28px 11px 12px;border-radius:13px;background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%;min-width:0;text-overflow:ellipsis}
+.filtros .sel.on{border-color:rgba(55,138,221,.55);color:var(--blue)}
+@media(max-width:520px){.filtros{grid-template-columns:1fr 1fr}.filtros .sel:last-child{grid-column:1/-1}}
+.pills{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.pills button{font-size:13px;font-weight:600;padding:8px 13px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.pills button.on{background:rgba(55,138,221,.15);border-color:rgba(55,138,221,.45);color:var(--blue)}
+.pills .limpiar{margin-left:auto;border:none;background:none;color:var(--blue);padding:8px 4px}
+.cinfo{font-size:12px;color:var(--muted);margin:0 2px 10px;line-height:1.45}
+.rec .mini{flex-basis:100%;font-size:12px;color:var(--muted);line-height:1.4;margin-top:2px}
+.rec .mini mark{background:rgba(55,138,221,.18);color:var(--ink);border-radius:4px;padding:0 3px}
+.mas{text-align:center;font-size:12.5px;color:var(--muted);padding:6px 0 4px}
 @media(max-width:380px){.seg{width:180px}.seg button{font-size:11.5px}.it-n{font-size:13.5px}.rec-l{min-width:60px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
@@ -313,7 +343,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
     <div class="hdr-row">
       <a class="ibtn volver" id="volver" href="/portal/" aria-label="Volver al portal" style="display:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
       <span class="mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9.5 3h5v3h-5z"/><path d="m9.5 13 2 2 3.5-4"/></svg></span>
-      <div class="ttl"><b>Mantenimiento</b><small>GLOBECO SMART</small></div>
+      <div class="ttl"><b id="hTitle">Mantenimiento</b><small>GLOBECO SMART</small></div>
       <button class="ibtn" id="btnSum" aria-label="Resumen del día"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
       <button class="ibtn" id="themeBtn" aria-label="Cambiar tema"></button>
     </div>
@@ -332,12 +362,30 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
   <div class="install" id="install"></div>
 
   <div class="stats">
-    <div class="st"><div class="n" id="sN">0</div><div class="k">Revisados</div></div>
-    <div class="st c"><div class="n" id="sC">0</div><div class="k">Cambios</div></div>
-    <div class="st a"><div class="n" id="sA">0</div><div class="k">Ajustes</div></div>
+    <div class="st"><div class="n" id="sN">0</div><div class="k" id="kN">Revisados</div></div>
+    <div class="st c"><div class="n" id="sC">0</div><div class="k" id="kC">Cambios</div></div>
+    <div class="st a"><div class="n" id="sA">0</div><div class="k" id="kA">Ajustes</div></div>
   </div>
 
-  <div class="linkrow"><h3>Contenedores de hoy</h3><button id="btnSum2">Ver resumen</button></div>
+  <!-- correctivo: buscar lo que el preventivo dejo pendiente -->
+  <section class="buscar" id="corrBox" style="display:none">
+    <div class="linkrow"><h3>Por corregir</h3><button id="cAct">Actualizar</button></div>
+    <div class="bq"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      <input id="cQ" type="search" placeholder="Número, ruta, ítem o fecha…" autocomplete="off" enterkeyhint="search"></div>
+    <div class="filtros">
+      <select class="sel" id="cFecha" aria-label="Fecha del preventivo"><option value="">Cualquier fecha</option></select>
+      <select class="sel" id="cRuta" aria-label="Ruta o sector"><option value="">Todas las rutas</option></select>
+      <select class="sel" id="cItem" aria-label="Ítem"><option value="">Todos los ítems</option></select>
+    </div>
+    <div class="pills" id="cEst">
+      <button data-e="abiertos" class="on">Pendientes</button><button data-e="Corregido">Corregidos</button><button data-e="todos">Todos</button>
+      <button class="limpiar" id="cLimpiar" style="display:none">Limpiar filtros</button>
+    </div>
+    <div class="cinfo" id="cInfo"></div>
+    <div class="list" id="cList" style="padding-bottom:6px"></div>
+  </section>
+
+  <div class="linkrow"><h3 id="lTitle">Contenedores de hoy</h3><button id="btnSum2">Ver resumen</button></div>
   <div class="list" id="list"></div>
   <footer>GLOBECO SMART · Designed by <b>W.I.G.</b> — CTO &amp; DoA</footer>
 </div>
@@ -436,8 +484,20 @@ const CONFIG={
   // Hoja GEO TRACK MANAGER: una sola pestaña para todas las ciudades
   GEO_ID:"1gXYMMPawfS16ed-8cYmsUWuWuJPHdxBM2E7tKMUgbr4",
   GEO_GID:"237265956",
-  GEO_COL_CIUDAD:"L"   // en FICHA TECNICA la K es RECOLECCION y la L es CIUDAD
+  GEO_COL_CIUDAD:"L",  // en FICHA TECNICA la K es RECOLECCION y la L es CIUDAD
+  // Preventivo y correctivo: misma app, otra pestaña por ciudad
+  SHEET_PREV:"Preventivo",           // «Preventivo · QUITO»
+  SHEET_CORR:"Correctivo",           // «Correctivo · QUITO»: un item por fila
+  PERMISO_PREV:"mantenimiento_preventivo",
+  PERMISO_CORR:"mantenimiento_correctivo",
+  MIN_FOTOS_CORR:2,                  // antes y despues, como minimo
+  PRECISAR_S:20                      // segundos que escucha el GPS al «Precisar»
 };
+/* La app tiene tres modos; el portal entra a cada uno por la URL.
+   Sin ?modo= es la hoja de revisión de siempre, sin ningun cambio. */
+const MODO=({preventivo:'prev',correctivo:'corr'})[new URLSearchParams(location.search).get('modo')]||'rev';
+const modoDe=r=>(r&&r.modo)||'rev';
+const DRAFT=MODO==='rev'?'gtm-draft':'gtm-draft-'+MODO;
 
 /* Puntos de revisión (mismos de la hoja «Mantenimiento») */
 const I={
@@ -460,7 +520,32 @@ const SOLO_CAMBIO=new Set(['grafitis']);
    (Logo Gidsa, Logo Ambato, Código QR, Tapa travesaño) ya no se escriben:
    las columnas viejas siguen en la hoja con su historico. */
 const ORDER=['numeracion','no_estacionarse','adhesivo_lateral','linea_centraje','grafitis','tapa','marco_tapa','perno_tapa','caucho_tapas','perno_autoperf','manilla','amortiguador','limitador_amort','soporte_amort','cables','resorte','triangulo','remaches','rodillo','piso','tapon','pedal','soporte_pedal'];
-const LABEL={};GROUPS.forEach(g=>g.items.forEach(([k,l])=>LABEL[k]=l));
+/* Preventivo: los puntos de la hoja «Mantenimiento Preventivo». Las claves
+   llevan p_ para no mezclarse con las de la revisión. */
+Object.assign(I,{
+  drop:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
+  plug:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="6" rx="1.5"/><path d="M10 9v4h4V9M12 13v8"/></svg>',
+  roller:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  paint:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="14" height="6" rx="1.5"/><path d="M18 6h2v5h-8v3"/><rect x="10.5" y="14" width="3" height="7" rx="1"/></svg>',
+  bolt:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l2 3-2 3H9L7 6z"/><path d="M12 9v12M9.5 12.5h5M9.5 16h5"/></svg>'
+});
+const GROUPS_PREV=[
+  {id:'p1',t:'Limpieza externa',d:'Contenedor, tapa del lado del pedal y área periférica',ic:I.drop,items:[['p_hidrolavado','Hidrolavado'],['p_limpieza_manual','Limpieza manual'],['p_limpieza_externa','Limpieza externa']]},
+  {id:'p2',t:'Ajuste de tapón',ic:I.plug,items:[['p_tapon','Ajuste de tapón']]},
+  {id:'p3',t:'Sistema de apertura',d:'Tapa y pedal',ic:I.lid,items:[['p_tapa_normal','Tapa normal'],['p_tapa_buzon','Tapa buzón'],['p_marco_tapa','Marco de tapa'],['p_perno_tapa','Perno de tapa'],['p_cable','Cable'],['p_pedal','Pedal'],['p_soporte_pedal','Soporte de pedal'],['p_resorte_pedal','Resorte de pedal'],['p_amortiguador','Amortiguador'],['p_limitador','Limitador']]},
+  {id:'p4',t:'Señalética · adhesivos',ic:I.tag,items:[['p_numeracion','Numeración'],['p_no_estacionarse','No estacionarse'],['p_adhesivo_lateral','Adhesivo lateral'],['p_linea_centraje','Línea de centraje']]},
+  {id:'p5',t:'Verificación funcional',ic:I.frame,items:[['p_caucho_tapa','Caucho de tapa'],['p_perno_autoperf','Perno autoperforante'],['p_manilla','Manilla'],['p_triangulo','Triángulo lateral']]},
+  {id:'p6',t:'Rodillo de toma',d:'Y arandela de retención',ic:I.roller,items:[['p_rodillo_toma','Rodillo de toma y arandela']]},
+  {id:'p7',t:'Rodillo anti tropiezo',ic:I.roller,items:[['p_rodillo_anti','Rodillo anti tropiezo']]},
+  {id:'p8',t:'Restauración de pintura',ic:I.paint,items:[['p_grafitis','Grafitis'],['p_oxido','Retiro de óxido'],['p_pintura','Pintura']]},
+  {id:'p9',t:'Pernos, vinchas, bujes y remaches',ic:I.bolt,items:[['p_pernos','Pernos'],['p_vinchas','Vinchas'],['p_buje_tapa','Buje de tapa'],['p_remaches','Remaches']]}
+];
+const ORDER_PREV=GROUPS_PREV.flatMap(g=>g.items.map(i=>i[0]));
+SOLO_CAMBIO.add('p_grafitis');
+const LABEL={},GRUPO_DE={};
+GROUPS.concat(GROUPS_PREV).forEach(g=>g.items.forEach(([k,l])=>{LABEL[k]=l;GRUPO_DE[k]=g;}));
+/* los grupos del formulario abierto */
+const grupos=()=>(F&&F.modo==='prev')?GROUPS_PREV:GROUPS;
 
 /* =====================================================================
    UTILIDADES
@@ -780,21 +865,24 @@ function despertar(){
 }
 const apiURL=()=>LS.get('gs-api','')||'';
 
+/* El compañero sale de quienes tienen el permiso de ESTE modo */
+const PERMISO_DEL_MODO={rev:CONFIG.PERMISO_EQUIPO,prev:CONFIG.PERMISO_PREV,corr:CONFIG.PERMISO_CORR}[MODO];
+const EQUIPO_KEY=MODO==='rev'?'gtm-equipo':'gtm-equipo-'+MODO;
 /* Compañeros de la misma ciudad con permiso de mantenimiento.
    Se guardan en el teléfono para que la lista exista aunque no haya señal. */
 async function cargarEquipo(){
   const ses=sesionPortal(); if(!ses||!apiURL()||!navigator.onLine)return;
   try{
     const r=await fetch(apiURL(),{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},
-      body:JSON.stringify({action:'equipo',token:ses.token,permiso:CONFIG.PERMISO_EQUIPO})});
+      body:JSON.stringify({action:'equipo',token:ses.token,permiso:PERMISO_DEL_MODO})});
     const d=await r.json();
-    if(d&&d.ok){LS.set('gtm-equipo',d.equipo||[]);pintarEquipo();}
+    if(d&&d.ok){LS.set(EQUIPO_KEY,d.equipo||[]);pintarEquipo();}
   }catch(e){}
 }
 function pintarEquipo(){
   const sel=$('#jR2sel'); if(!sel)return;
   const ses=sesionPortal(), yo=(ses&&ses.nombre)||'';
-  const lista=LS.get('gtm-equipo',[]).filter(p=>p.nombre!==yo);
+  const lista=LS.get(EQUIPO_KEY,[]).filter(p=>p.nombre!==yo);
   const guardado=(getJ()||{}).r2||'';
   sel.innerHTML='<option value="">Trabajo solo</option>'
     +lista.map(p=>`<option value="${esc(p.nombre)}"${p.nombre===guardado?' selected':''}>${esc(p.nombre)}${p.cargo?' · '+esc(p.cargo):''}</option>`).join('')
@@ -860,19 +948,32 @@ function renderJornada(){
 let lastNewId=null;
 function renderList(){
   const j=getJ(),day=j?j.fecha:todayISO();
-  const todays=records.filter(r=>r.data.fecha===day).sort((a,b)=>b.createdAt-a.createdAt);
-  let c=0,a=0;todays.forEach(r=>{const t=totals(r.data);c+=t.c;a+=t.a;});
-  $('#sN').textContent=todays.length;$('#sC').textContent=c;$('#sA').textContent=a;
-  const others=records.filter(r=>r.data.fecha!==day&&r.status!=='sent').length;
+  const mios=records.filter(r=>modoDe(r)===MODO);
+  const todays=mios.filter(r=>r.data.fecha===day).sort((a,b)=>b.createdAt-a.createdAt);
+  if(MODO==='corr')renderCorr(todays);
+  else{
+    let c=0,a=0;todays.forEach(r=>{const t=totals(r.data);c+=t.c;a+=t.a;});
+    $('#sN').textContent=todays.length;$('#sC').textContent=c;$('#sA').textContent=a;
+  }
+  const others=mios.filter(r=>r.data.fecha!==day&&r.status!=='sent').length;
   const L=$('#list');
-  if(!todays.length){L.innerHTML=`<div class="empty"><b>Aún no hay revisiones</b>Toca «Revisar contenedor» para registrar el primero.${others?`<br><br>${plural(others,'registro')} de días anteriores pendiente${others>1?'s':''} de envío.`:''}</div>`;return;}
+  const VACIO={rev:['Aún no hay revisiones','Toca «Revisar contenedor» para registrar el primero.'],
+    prev:['Aún no hay preventivos','Toca «Nuevo preventivo» para registrar el primero.'],
+    corr:['Sin correcciones hoy','Busca arriba el contenedor y marca lo que corregiste.']}[MODO];
+  if(!todays.length){L.innerHTML=`<div class="empty"><b>${VACIO[0]}</b>${VACIO[1]}${others?`<br><br>${plural(others,'registro')} de días anteriores pendiente${others>1?'s':''} de envío.`:''}</div>`;return;}
   L.innerHTML=todays.map(r=>{
     const d=r.data,t=totals(d),tags=[];
+    if(MODO==='corr'){
+      const h=(d.items||[]).filter(x=>x.res==='Corregido').length,n=(d.items||[]).filter(x=>x.res==='No se pudo').length;
+      if(h)tags.push(`<span class="tag h">${plural(h,'corregido')}</span>`);
+      if(n)tags.push(`<span class="tag x">${n} no se pudo</span>`);
+    }
     if(t.c)tags.push(`<span class="tag c">${plural(t.c,'cambio')}</span>`);
     if(t.a)tags.push(`<span class="tag a">${plural(t.a,'ajuste')}</span>`);
+    if(d.siniestro)tags.push(`<span class="tag x">${esc(d.siniestro)}</span>`);
     if(d.chocado)tags.push('<span class="tag x">Chocado</span>');
     if(d.cambioCont)tags.push('<span class="tag x">Cambio de contenedor</span>');
-    if(!tags.length)tags.push('<span class="tag ok">Todo OK</span>');
+    if(!tags.length&&MODO!=='corr')tags.push('<span class="tag ok">Todo OK</span>');
     const nf=fotosDe(r).length+urlsDe(r).length;
     if(nf)tags.push(`<span class="tag ok">${nf} ${nf===1?'foto':'fotos'}</span>`);
     const st=r.status==='sent'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Enviado"><path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 8z"/><path d="m9.5 13.5 2 2 3.5-4"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" aria-label="Pendiente"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
@@ -889,9 +990,41 @@ $('#list').addEventListener('click',e=>{const b=e.target.closest('.rec');if(!b)r
    ENVÍO A GOOGLE SHEETS (cola automática)
    ===================================================================== */
 let syncing=false,netState=navigator.onLine?'online':'offline',lastSync=LS.get('gtm-lastsync',0),ultimoError='';
-function hojaDe(r){const c=(r.data.ciudad||'').trim().toUpperCase();return c?`${CONFIG.SHEET_BASE} · ${c}`:CONFIG.SHEET_BASE;}
+function hojaDe(r){
+  const base={rev:CONFIG.SHEET_BASE,prev:CONFIG.SHEET_PREV,corr:CONFIG.SHEET_CORR}[modoDe(r)];
+  const c=(r.data.ciudad||'').trim().toUpperCase();return c?`${base} · ${c}`:base;
+}
+const hojaCorr=ciudad=>{const c=String(ciudad||'').trim().toUpperCase();return c?`${CONFIG.SHEET_CORR} · ${c}`:CONFIG.SHEET_CORR;};
+const estadoPrev=v=>v==='a'?'Ajuste':(typeof v==='number'?(v>1?`Cambio ×${v}`:'Cambio'):'OK');
+/* Lo que un preventivo deja para el correctivo: un item por cada punto en
+   Ajuste o Cambio, mas el siniestro si lo hay. El ID es fijo (preventivo·clave)
+   para que el servidor nunca lo duplique, por mas veces que llegue. */
+function itemsDePrev(r){
+  const d=r.data,out=[],base={prev:r.id,fp:d.fecha,ciu:(d.ciudad||'').toUpperCase(),t:d.tacho,r:d.ruta||'',
+    rp:[d.r1,d.r2].filter(Boolean).join(' / ')};
+  ORDER_PREV.forEach(k=>{
+    const v=d.items[k];if(v==null)return;
+    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:LABEL[k],a:v==='a'?'Ajuste':'Cambio',q:typeof v==='number'?v:1});
+  });
+  if(d.siniestro)out.push({...base,id:`${r.id}·siniestro`,g:'Siniestrado',i:'Contenedor siniestrado',a:d.siniestro,q:1});
+  return out;
+}
 function toFields(r){
   const d=r.data,t=totals(d);
+  if(modoDe(r)==='prev'){
+    const f=[['Fecha',d.fecha],['Hora',d.hora],['Ciudad',d.ciudad||''],['Responsable 1',d.r1],['Responsable 2',d.r2||''],['# Tacho',d.tacho],['Ruta',d.ruta||''],
+      ['Latitud',d.lat??''],['Longitud',d.lng??''],['Precisión GPS (m)',d.acc!=null?Math.round(d.acc):''],['Distancia a GEO TRACK (m)',d.dist!=null?Math.round(d.dist):'']];
+    for(const k of ORDER_PREV)f.push([LABEL[k],estadoPrev(d.items[k])]);
+    f.push(['Siniestrado',d.siniestro||'OK'],['Total cambios',t.c],['Total ajustes',t.a],['Ítems para correctivo',itemsDePrev(r).length],
+      ['Observaciones',d.obs||''],['Registrado',stamp(r.createdAt)],['Última edición',stamp(r.updatedAt)]);
+    return f;
+  }
+  if(modoDe(r)==='corr'){
+    const its=d.items||[],nom=x=>`${x.i} (${x.a}${x.q>1?' ×'+x.q:''})`;
+    return [['Fecha',d.fecha],['Hora',d.hora],['Ciudad',d.ciudad||''],['Responsable 1',d.r1],['Responsable 2',d.r2||''],['# Tacho',d.tacho],['Ruta',d.ruta||''],
+      ['Corregidos',its.filter(x=>x.res==='Corregido').map(nom).join('; ')],['No se pudo',its.filter(x=>x.res==='No se pudo').map(nom).join('; ')],
+      ['Latitud',d.lat??''],['Longitud',d.lng??''],['Precisión GPS (m)',d.acc!=null?Math.round(d.acc):''],['Observaciones',d.obs||''],['Registrado',stamp(r.createdAt)]];
+  }
   const f=[['Fecha',d.fecha],['Hora',d.hora],['Ciudad',d.ciudad||''],['Responsable 1',d.r1],['Responsable 2',d.r2||''],['# Tacho',d.tacho],['Ruta',d.ruta||''],
     ['Latitud',d.lat??''],['Longitud',d.lng??''],['Precisión GPS (m)',d.acc!=null?Math.round(d.acc):''],['Distancia a GEO TRACK (m)',d.dist!=null?Math.round(d.dist):'']];
   for(const k of ORDER){const v=d.items[k];f.push([LABEL[k],v==null?'':v]);}
@@ -904,9 +1037,15 @@ async function syncNow(){
   const pend=records.filter(r=>r.status!=='sent');
   if(!pend.length||!CONFIG.APPS_SCRIPT_URL||!navigator.onLine){renderNet();return;}
   syncing=true;renderNet();
+  // primero los preventivos: sus items son los que el correctivo va a cerrar
+  const orden={prev:0,rev:1,corr:2};
+  pend.sort((a,b)=>orden[modoDe(a)]-orden[modoDe(b)]||a.createdAt-b.createdAt);
+  let mandados=0;
   for(const r of pend){
     try{
+      if(modoDe(r)==='corr'){await enviarCorreccion(r);mandados++;continue;}
       const payload={sheet:hojaDe(r),id:r.id,fields:toFields(r)};
+      if(modoDe(r)==='prev')payload.correctivo={hoja:hojaCorr(r.data.ciudad),items:itemsDePrev(r)};
       if(r.data.nuevo){
         // el servidor agrega la fila en FICHA TECNICA copiando el formato de
         // la ultima fila: asi el enlace de WhatsApp y los demas campos salen
@@ -959,7 +1098,7 @@ async function syncNow(){
           ? `El contenedor ${r.data.tacho} ya estaba en GEO TRACK MANAGER (fila ${j.geo.fila}). El registro sí se guardó.`
           : 'El registro se guardó, pero no pude agregarlo a GEO TRACK MANAGER. Avisa a soporte.');
       }
-      await dbPut(r);netState='online';lastSync=Date.now();LS.set('gtm-lastsync',lastSync);
+      await dbPut(r);netState='online';lastSync=Date.now();LS.set('gtm-lastsync',lastSync);mandados++;
     }catch(e){
       // Antes esto decia «cobertura debil» pasara lo que pasara, y escondia
       // los errores del servidor. Ahora se guarda el motivo real.
@@ -969,6 +1108,36 @@ async function syncNow(){
     }
   }
   syncing=false;renderList();renderNet();
+  if(mandados&&MODO==='corr')traerPendientes();
+}
+/* Una corrección viaja aparte: no es una fila nueva, cierra filas del correctivo */
+async function enviarCorreccion(r){
+  const d=r.data,payload={action:'corregir',id:r.id,hoja:hojaCorr(d.ciudad),ciudad:d.ciudad||'',tacho:d.tacho,ruta:d.ruta||'',
+    fecha:d.fecha,hora:d.hora,responsables:[d.r1,d.r2].filter(Boolean).join(' / '),obs:d.obs||'',
+    lat:d.lat??null,lng:d.lng??null,acc:d.acc??null,items:(d.items||[]).filter(x=>x.res)};
+  const fs=fotosDe(r);
+  if(fs.length){payload.fotos=fs;payload.fotoName=`corr_${d.fecha}_${d.tacho}_${r.id.slice(0,6)}`;}
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
+  const res=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload),signal:ctl.signal,redirect:'follow'});
+  clearTimeout(to);
+  const j=await res.json();
+  if(!j.ok)throw new Error(j.error||'Error del servidor');
+  ultimoError='';
+  r.status='sent';r.sentAt=Date.now();
+  if(Array.isArray(j.fotoUrls)&&j.fotoUrls.length)r.fotosUrl=j.fotoUrls;
+  r.fotos=[];
+  if(Array.isArray(j.ya)&&j.ya.length){
+    // otra persona los cerro primero: en la hoja vale lo suyo
+    r.ya=j.ya;
+    toast(`Contenedor ${esc(d.tacho)}: ${plural(j.ya.length,'ítem')} ya lo${j.ya.length===1?'':'s'} había corregido otra persona.`);
+  }
+  // la lista guardada se pone al dia sin esperar a la proxima descarga
+  const P=pendCache();
+  (d.items||[]).forEach(x=>{if(!x.res||(r.ya||[]).includes(x.id))return;
+    const y=P.items.find(z=>z.id===x.id);
+    if(y){y.e=x.res;y.fc=d.fecha;y.rc=payload.responsables;}else P.items.push({...x,e:x.res,fc:d.fecha,rc:payload.responsables});});
+  LS.set(pendKey(),P);
+  await dbPut(r);netState='online';lastSync=Date.now();LS.set('gtm-lastsync',lastSync);
 }
 function renderNet(){
   const n=records.filter(r=>r.status!=='sent').length,el=$('#net'),tx=$('#netTxt');
@@ -993,7 +1162,7 @@ function renderNet(){
     b.textContent=act;
   }else if(b)b.remove();
 }
-addEventListener('online',()=>{netState='online';renderNet();refreshGeo();syncNow();});
+addEventListener('online',()=>{netState='online';renderNet();refreshGeo();syncNow();if(MODO==='corr')traerPendientes();});
 addEventListener('offline',()=>{netState='offline';renderNet();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow();});
 setInterval(()=>{if(navigator.onLine)syncNow();},30000);
@@ -1002,24 +1171,26 @@ setInterval(()=>{if(navigator.onLine)syncNow();},30000);
    FORMULARIO DE CONTENEDOR
    ===================================================================== */
 let F=null,dirtyForm=false,gpsWatch=null;
-const blank=()=>({id:null,tacho:'',ruta:'',items:{},limpieza:false,golpes:false,chocado:false,cambioCont:false,obs:'',fotos:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false,nuevo:false,qr:'NO',gidsa:'N/A'});
+const blank=()=>({modo:MODO,siniestro:'',id:null,tacho:'',ruta:'',items:{},limpieza:false,golpes:false,chocado:false,cambioCont:false,obs:'',fotos:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false,nuevo:false,qr:'NO',gidsa:'N/A'});
 /* Los registros viejos guardaban UNA foto en «foto»/«fotoUrl». Esto los lee
    igual que los nuevos, para no perder nada de lo que ya esta en los telefonos. */
 const fotosDe=r=>Array.isArray(r.fotos)?r.fotos.filter(Boolean):(r.foto?[r.foto]:[]);
 const urlsDe =r=>Array.isArray(r.fotosUrl)?r.fotosUrl.filter(Boolean):(r.fotoUrl?[r.fotoUrl]:[]);
 const cuantasFotos=f=>f.fotos.length+f.fotosUrl.length;
+const minFotos=()=>(F&&F.modo==='corr')?CONFIG.MIN_FOTOS_CORR:CONFIG.MIN_FOTOS;
 function openForm(rec,nuevo){
   if(!getJ()){openJornada();return;}
+  if(rec&&modoDe(rec)==='corr'){openCorr(rec.data.tacho,rec);return;}
   if(nuevo&&!puede(CONFIG.PERMISO_CATASTRO)){toast('No tienes permiso para catastrar contenedores');return;}
-  if(rec){const d=rec.data;F={...blank(),id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},limpieza:!!d.limpieza,golpes:!!d.golpes,chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',nuevo:!!d.nuevo,
+  if(rec){const d=rec.data;F={...blank(),modo:modoDe(rec),siniestro:d.siniestro||'',id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},limpieza:!!d.limpieza,golpes:!!d.golpes,chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',nuevo:!!d.nuevo,
     fotos:fotosDe(rec),fotosUrl:urlsDe(rec),lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist,
     qr:d.qr||'NO',gidsa:d.gidsa||'N/A',bloqueado:rec.status==='sent'};}
   else if(nuevo){F={...blank(),nuevo:true};}
-  else{const dr=LS.get('gtm-draft',null);F=dr&&!dr.id?{...blank(),...dr,fotos:Array.isArray(dr.fotos)?dr.fotos:[],fotosUrl:[],fotosChanged:!!(dr.fotos&&dr.fotos.length)}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
+  else{const dr=LS.get(DRAFT,null);F=dr&&!dr.id?{...blank(),...dr,fotos:Array.isArray(dr.fotos)?dr.fotos:[],fotosUrl:[],fotosChanged:!!(dr.fotos&&dr.fotos.length)}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
   dirtyForm=false;
-  $('#fTitle').textContent=rec?`Contenedor ${rec.data.tacho}`:(F.nuevo?'Contenedor nuevo':'Nuevo contenedor');
+  $('#fTitle').textContent=rec?`Contenedor ${rec.data.tacho}`:(F.nuevo?'Contenedor nuevo':(F.modo==='prev'?'Nuevo preventivo':'Nuevo contenedor'));
   $('#fSub').textContent=rec?(rec.status==='sent'?'Enviado · solo lectura':'Guardado en el teléfono')
-    :(F.nuevo?'Catastro · se agrega a GEO TRACK MANAGER':'Hoja de revisión');
+    :(F.nuevo?'Catastro · se agrega a GEO TRACK MANAGER':subForm());
   $('#fDel').style.display=rec?'grid':'none';
   // un registro enviado se abre para consultar, no para cambiar
   $('#sheet').classList.toggle('visto',!!F.bloqueado);
@@ -1033,13 +1204,14 @@ function openForm(rec,nuevo){
   if(!rec)setTimeout(()=>{if(!F.tacho)$('#fTacho').focus();},420);
 }
 function closeForm(force){
-  if(!force&&dirtyForm&&!F.id&&!F.nuevo){LS.set('gtm-draft',{...F,fotos:F.fotos});}
+  if(!force&&dirtyForm&&!F.id&&!F.nuevo&&F.modo!=='corr'){LS.set(DRAFT,{...F,fotos:F.fotos});}
   $('#sheet').classList.remove('open');$('#sheet').setAttribute('aria-hidden','true');
-  document.body.style.overflow='';stopGPS();F=null;
+  document.body.style.overflow='';terminarPrecision(true);stopGPS();F=null;
 }
 $('#fClose').addEventListener('click',()=>{
   if(dirtyForm&&F.id&&!confirm('¿Salir sin guardar los cambios?'))return;
-  if(dirtyForm&&!F.id)toast('Lo guardé como borrador. Al volver seguirás donde lo dejaste.');
+  if(dirtyForm&&!F.id&&F.modo!=='corr')toast('Lo guardé como borrador. Al volver seguirás donde lo dejaste.');
+  if(dirtyForm&&F.modo==='corr'&&!F.id&&!confirm('¿Salir sin guardar la corrección?'))return;
   closeForm(false);
 });
 $('#fDel').addEventListener('click',async()=>{
@@ -1059,7 +1231,7 @@ function itemHTML(k,l){
       <div class="seg${dos?' dos':''}" data-k="${k}" data-s="${s}" style="--i:${i}"><span class="ind"></span>
         <button data-v="ok" aria-label="${esc(l)}: bien">OK</button>${dos?'':`<button data-v="a" aria-label="${esc(l)}: ajuste">Ajuste</button>`}<button data-v="c" aria-label="${esc(l)}: cambio">Cambio</button>
       </div></div>
-    <div class="qty${s==='c'?' show':''}"><span>Piezas cambiadas</span><div class="step"><button data-q="-1" data-k="${k}" aria-label="Menos">−</button><output id="q-${k}">${q}</output><button data-q="1" data-k="${k}" aria-label="Más">+</button></div></div>
+    <div class="qty${s==='c'?' show':''}"><span>${F.modo==='prev'?'Piezas a cambiar':'Piezas cambiadas'}</span><div class="step"><button data-q="-1" data-k="${k}" aria-label="Menos">−</button><output id="q-${k}">${q}</output><button data-q="1" data-k="${k}" aria-label="Más">+</button></div></div>
   </div>`;
 }
 /* Lo que va a ir a FICHA TECNICA de GEO TRACK MANAGER. Las coordenadas no se
@@ -1116,6 +1288,16 @@ function pintarFicha(){
   vieja.replaceWith(t.firstElementChild);
 }
 
+function subForm(){return F.modo==='prev'?'Mantenimiento preventivo':'Hoja de revisión';}
+const SIN_OPC=[['','OK'],['Quemado','Quemado'],['Chocado','Chocado']];
+function sinSegHTML(){
+  const i=SIN_OPC.findIndex(o=>o[0]===(F.siniestro||''));
+  return `<div class="seg" data-sin data-s="${F.siniestro?'x':'ok'}" style="--i:${i}"><span class="ind"></span>
+      ${SIN_OPC.map(o=>`<button data-sv="${o[0]}"${o[0]===(F.siniestro||'')?' class="on"':''}>${o[1]}</button>`).join('')}</div>`;
+}
+function sinHTML(){
+  return `<div class="it-row"><div class="it-n">Estado del contenedor<small>Si está quemado o chocado pasa al correctivo</small></div>${sinSegHTML()}</div>`;
+}
 function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {c,a};}
 function groupChip(g){const {c,a}=groupStatus(g);if(!c&&!a)return '<span class="grp-s">Todo OK</span>';return `<span class="grp-s has">${[c?plural(c,'cambio'):'',a?plural(a,'ajuste'):''].filter(Boolean).join(' · ')}</span>`;}
 function buildForm(){
@@ -1131,13 +1313,17 @@ function buildForm(){
     <div class="chips" id="fChips"></div>
     ${F.nuevo?fichaGeo():''}
 
-    <div class="sec-t"><h4>${F.nuevo?'Estado al catastrar':'Revisión'}</h4><div class="legend"><span><i style="background:var(--teal)"></i>OK</span><span><i style="background:var(--amber)"></i>Ajuste</span><span><i style="background:var(--blue)"></i>Cambio</span></div></div>
-    ${GROUPS.map((g,gi)=>`<div class="grp${gi===0?' open':''}" id="g-${g.id}">
-      <button class="grp-h" data-g="${g.id}"><span class="grp-ic">${g.ic}</span><span class="grp-t"><b>${esc(g.t)}</b><small>${plural(g.items.length,'punto')}</small></span><span id="gs-${g.id}">${groupChip(g)}</span>
+    <div class="sec-t"><h4>${F.nuevo?'Estado al catastrar':(F.modo==='prev'?'Revisión preventiva':'Revisión')}</h4><div class="legend"><span><i style="background:var(--teal)"></i>OK</span><span><i style="background:var(--amber)"></i>Ajuste</span><span><i style="background:var(--blue)"></i>Cambio</span></div></div>
+    ${grupos().map((g,gi)=>`<div class="grp${gi===0?' open':''}" id="g-${g.id}">
+      <button class="grp-h" data-g="${g.id}"><span class="grp-ic">${g.ic}</span><span class="grp-t"><b>${esc(g.t)}</b><small>${g.d?esc(g.d)+' · ':''}${plural(g.items.length,'punto')}</small></span><span id="gs-${g.id}">${groupChip(g)}</span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
       <div class="grp-b"><div><div class="grp-tools"><button data-allok="${g.id}">Marcar todo OK</button></div>${g.items.map(([k,l])=>itemHTML(k,l)).join('')}</div></div>
     </div>`).join('')}
 
+    ${F.modo==='prev'?`
+    <div class="sec-t"><h4>Siniestrado</h4></div>
+    <div class="grp open"><div class="it" style="border-top:0">${sinHTML()}</div></div>
+    `:`
     <div class="sec-t"><h4>Contenedor · limpieza</h4></div>
     <button class="tg${F.limpieza?' on':''}" data-t="limpieza"><span class="tx"><b>Necesita lavado</b><small>El contenedor requiere limpieza o lavado</small></span><span class="sw"></span></button>
 
@@ -1145,6 +1331,7 @@ function buildForm(){
     <button class="tg${F.golpes?' on':''}" data-t="golpes"><span class="tx"><b>Golpes</b><small>Presenta abolladuras o deformación</small></span><span class="sw"></span></button>
     <button class="tg${F.chocado?' on':''}" data-t="chocado"><span class="tx"><b>Chocado</b><small>Fue impactado por un vehículo</small></span><span class="sw"></span></button>
     <button class="tg${F.cambioCont?' on':''}" data-t="cambioCont"><span class="tx"><b>Cambio de contenedor</b><small>Se reemplazó el contenedor completo</small></span><span class="sw"></span></button>
+    `}
 
     <div class="sec-t"><h4>Observaciones</h4><small>Opcional</small></div>
     <textarea class="obs" id="fObs" placeholder="Escribe cualquier detalle adicional…">${esc(F.obs)}</textarea>
@@ -1173,6 +1360,16 @@ body.addEventListener('click',e=>{
       toast('Este registro ya se envió y no se puede modificar');return;
     }
   }
+  const sv=e.target.closest('[data-sv]');
+  if(sv){F.siniestro=sv.dataset.sv;const seg=sv.parentElement;seg.outerHTML=sinSegHTML();
+    if(navigator.vibrate)navigator.vibrate(8);changed();return;}
+  const cv=e.target.closest('[data-cv]');
+  if(cv){const id=cv.parentElement.dataset.ci;if(cv.dataset.cv)F.res[id]=cv.dataset.cv;else delete F.res[id];
+    cv.parentElement.outerHTML=corrSegHTML(id);if(navigator.vibrate)navigator.vibrate(8);changed();return;}
+  if(e.target.closest('[data-allh]')){F.corrItems.forEach(x=>{if(!x.cerrado)F.res[x.id]='Corregido';});
+    F.corrItems.forEach(x=>{const el=document.querySelector(`.seg[data-ci="${CSS.escape(x.id)}"]`);if(el)el.outerHTML=corrSegHTML(x.id);});changed();return;}
+  if(e.target.closest('[data-precisar]')){precisarGPS();return;}
+  if(e.target.closest('[data-gpsfin]')){terminarPrecision(false);return;}
   const segB=e.target.closest('.seg button');
   if(segB){const seg=segB.parentElement,k=seg.dataset.k,v=segB.dataset.v;
     if(v==='ok')delete F.items[k];else if(v==='a')F.items[k]='a';else F.items[k]=typeof F.items[k]==='number'?F.items[k]:1;
@@ -1183,8 +1380,8 @@ body.addEventListener('click',e=>{
   const gh=e.target.closest('.grp-h');
   if(gh){$('#g-'+gh.dataset.g).classList.toggle('open');return;}
   const ao=e.target.closest('[data-allok]');
-  if(ao){const g=GROUPS.find(x=>x.id===ao.dataset.allok);g.items.forEach(([k])=>{delete F.items[k];paintItem(k);});changed();
-    const idx=GROUPS.indexOf(g),next=GROUPS[idx+1];$('#g-'+g.id).classList.remove('open');if(next){const n=$('#g-'+next.id);n.classList.add('open');setTimeout(()=>n.scrollIntoView({behavior:'smooth',block:'start'}),200);}return;}
+  if(ao){const G=grupos(),g=G.find(x=>x.id===ao.dataset.allok);g.items.forEach(([k])=>{delete F.items[k];paintItem(k);});changed();
+    const idx=G.indexOf(g),next=G[idx+1];$('#g-'+g.id).classList.remove('open');if(next){const n=$('#g-'+next.id);n.classList.add('open');setTimeout(()=>n.scrollIntoView({behavior:'smooth',block:'start'}),200);}return;}
   const tg=e.target.closest('[data-t]');
   if(tg){const k=tg.dataset.t;F[k]=!F[k];tg.classList.toggle('on',F[k]);if(navigator.vibrate)navigator.vibrate(8);changed();paintSum();return;}
   const sg=e.target.closest('#fSugg button');
@@ -1230,17 +1427,26 @@ body.addEventListener('change',e=>{
 body.addEventListener('focusout',e=>{if(e.target.id==='fTacho')setTimeout(()=>$('#fSugg')&&$('#fSugg').classList.remove('show'),180);});
 body.addEventListener('keydown',e=>{if(e.target.id==='fTacho'&&e.key==='Enter'){e.preventDefault();$('#fSugg').classList.remove('show');e.target.blur();}});
 
-function changed(){dirtyForm=true;if(F&&!F.id)LS.set('gtm-draft',F);paintSum();}
+function changed(){dirtyForm=true;if(F&&!F.id&&F.modo!=='corr')LS.set(DRAFT,F);paintSum();}
 function paintItem(k){
   const s=itemState(k),seg=document.querySelector(`.seg[data-k="${k}"]`);if(!seg)return;
   seg.dataset.s=s;seg.style.setProperty('--i',SOLO_CAMBIO.has(k)?(s==='c'?1:0):{ok:0,a:1,c:2}[s]);
   const row=$('#it-'+k),qty=row.querySelector('.qty');qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=F.items[k];
   paintGroup(k);
 }
-function paintGroup(k){const g=GROUPS.find(x=>x.items.some(i=>i[0]===k));$('#gs-'+g.id).innerHTML=groupChip(g);groupsFlag();}
-function groupsFlag(){GROUPS.forEach(g=>{const s=groupStatus(g);$('#g-'+g.id).classList.toggle('has',!!(s.c||s.a));});}
+function paintGroup(k){const g=grupos().find(x=>x.items.some(i=>i[0]===k));$('#gs-'+g.id).innerHTML=groupChip(g);groupsFlag();}
+function groupsFlag(){grupos().forEach(g=>{const s=groupStatus(g);$('#g-'+g.id).classList.toggle('has',!!(s.c||s.a));});}
 function paintSum(){
   if(!F)return;const t=totals(F),tags=[];
+  if(F.modo==='corr'){
+    const v=Object.values(F.res),h=v.filter(x=>x==='Corregido').length,n=v.filter(x=>x==='No se pudo').length,
+      sin=F.corrItems.filter(x=>!x.cerrado).length-h-n;
+    if(h)tags.push(`<span class="tag h">${plural(h,'corregido')}</span>`);
+    if(n)tags.push(`<span class="tag x">${n} no se pudo</span>`);
+    if(sin>0)tags.push(`<span class="tag">${sin} sin marcar</span>`);
+    $('#fSum').innerHTML=tags.join('');return;
+  }
+  if(F.siniestro)tags.push(`<span class="tag x">${esc(F.siniestro)}</span>`);
   if(t.c)tags.push(`<span class="tag c">${plural(t.c,'cambio')}</span>`);
   if(t.a)tags.push(`<span class="tag a">${plural(t.a,'ajuste')}</span>`);
   if(F.chocado)tags.push('<span class="tag x">Chocado</span>');
@@ -1270,12 +1476,19 @@ function calcDist(){const hit=GEOMAP.get((F.tacho||'').toLowerCase());F.dist=(hi
 /* chips de estado: GPS, distancia, duplicado */
 function paintChips(){
   const el=$('#fChips');if(!el)return;const out=[];
-  if(F.lat!=null)out.push(`<span class="chip ${F.acc<=30?'good':'warn'}">GPS ±${Math.round(F.acc)} m</span>`);
-  else if(gpsWatch!==null)out.push('<span class="chip">Buscando GPS…</span>');
-  else out.push('<span class="chip warn">Sin GPS · <button data-gps>Reintentar</button></span>');
+  if(precisa){
+    const quedan=Math.max(0,Math.ceil((precisa.dur-(Date.now()-precisa.t0))/1000));
+    const mejor=precisa.m.length?Math.round(Math.min(...precisa.m.map(x=>x.acc))):null;
+    out.push(`<span class="chip prec va">Precisando${mejor!=null?` · ±${mejor} m`:'…'} · ${quedan} s · <button data-gpsfin>Listo</button></span>`);
+  }else{
+    if(F.lat!=null)out.push(`<span class="chip ${F.acc<=30?'good':'warn'}">GPS ±${Math.round(F.acc)} m${F.gpsAjustado?' · ajustado':''}</span>`);
+    else if(gpsWatch!==null)out.push(`<span class="chip">Buscando GPS…${navigator.onLine?'':' sin internet puede tardar 1–2 min'}</span>`);
+    else out.push('<span class="chip warn">Sin GPS · <button data-gps>Reintentar</button></span>');
+    if(!F.bloqueado&&('geolocation' in navigator))out.push('<button class="chip prec" data-precisar>Precisar ubicación</button>');
+  }
   if(F.dist!=null)out.push(F.dist<=120?`<span class="chip good">A ${Math.round(F.dist)} m del punto registrado</span>`:`<span class="chip warn">A ${F.dist>=1000?(F.dist/1000).toFixed(1)+' km':Math.round(F.dist)+' m'} del punto registrado</span>`);
   if(F.tacho&&GEO.list.length&&!GEOMAP.get(F.tacho.toLowerCase()))out.push('<span class="chip warn">No está en GEO TRACK · elige la ruta</span>');
-  const j=getJ(),dup=F.tacho&&records.find(r=>r.id!==F.id&&r.data.fecha===(j&&j.fecha)&&r.data.tacho===F.tacho);
+  const j=getJ(),dup=F.modo!=='corr'&&F.tacho&&records.find(r=>r.id!==F.id&&modoDe(r)===F.modo&&r.data.fecha===(j&&j.fecha)&&r.data.tacho===F.tacho);
   if(dup)out.push(`<span class="chip bad">Ya lo revisaste hoy · <button data-open="${dup.id}">Abrir</button></span>`);
   el.innerHTML=out.join('');
 }
@@ -1293,13 +1506,58 @@ function startGPS(){
 }
 function stopGPS(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;}if(F)paintChips();}
 
+/* «Precisar ubicación»: escucha el GPS unos segundos sin aceptar posiciones
+   guardadas (maximumAge 0) y se queda con el promedio de las mejores lecturas,
+   pesadas por su precision. Funciona sin internet: el GPS habla con los
+   satelites, no con la red. Lo que la red aporta es velocidad para el primer
+   punto y la ayuda del wifi; sin ella tarda mas, pero la precision al aire
+   libre es la misma. Reemplaza el punto anterior aunque salga un poco peor,
+   porque si la persona lo pide es que se movio al lado del contenedor. */
+let precisa=null;
+function precisarGPS(){
+  if(!F||!('geolocation' in navigator)){toast('Este teléfono no entrega ubicación');return;}
+  terminarPrecision(true);stopGPS();
+  const P={t0:Date.now(),m:[],dur:CONFIG.PRECISAR_S*1000};
+  precisa=P;
+  P.watch=navigator.geolocation.watchPosition(p=>{
+    if(precisa!==P||!F)return;
+    P.m.push({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy});
+    paintChips();
+  },err=>{
+    if(precisa!==P)return;
+    if(err&&err.code===1){terminarPrecision(true);toast('El teléfono no da permiso de ubicación a esta app');}
+  },{enableHighAccuracy:true,maximumAge:0,timeout:(CONFIG.PRECISAR_S+15)*1000});
+  P.tick=setInterval(()=>{
+    if(precisa!==P){clearInterval(P.tick);return;}
+    if(Date.now()-P.t0>=P.dur)terminarPrecision(false);else paintChips();
+  },1000);
+  paintChips();
+}
+function terminarPrecision(cancelar){
+  const P=precisa;if(!P)return;
+  precisa=null;clearInterval(P.tick);try{navigator.geolocation.clearWatch(P.watch);}catch(e){}
+  if(cancelar||!F){if(F)paintChips();return;}
+  if(!P.m.length){
+    toast(navigator.onLine?'No llegó señal de GPS. Sal a cielo abierto y vuelve a intentar.'
+      :'Sin internet el GPS tarda más en encontrar satélites. Quédate a cielo abierto y vuelve a intentar.');
+    paintChips();return;
+  }
+  const mejor=Math.min(...P.m.map(x=>x.acc));
+  const buenas=P.m.filter(x=>x.acc<=Math.max(mejor*1.5,mejor+3));
+  let w=0,la=0,ln=0;
+  buenas.forEach(x=>{const k=1/Math.max(1,x.acc*x.acc);w+=k;la+=x.lat*k;ln+=x.lng*k;});
+  F.lat=+(la/w).toFixed(7);F.lng=+(ln/w).toFixed(7);F.acc=mejor;F.gpsAjustado=true;
+  changed();paintGPS();
+  toast(`Ubicación ajustada · ±${Math.round(mejor)} m (${plural(buenas.length,'lectura')})`);
+}
+
 /* ─────────── fotos: minimo CONFIG.MIN_FOTOS, sin tope arriba ───────────
    Cada una se reduce antes de guardarla: una foto de celular pesa ~6 MB y
    aqui queda en ~250 KB, para que cuatro por registro no llenen el telefono
    cuando se acumulan sin señal. */
 function paintPhoto(){
   const el=$('#fPhoto');if(!el)return;
-  const n=cuantasFotos(F),min=CONFIG.MIN_FOTOS,falta=Math.max(0,min-n);
+  const n=cuantasFotos(F),min=minFotos(),falta=Math.max(0,min-n);
   const pct=Math.min(100,Math.round(n/min*100));
 
   const thumbs=F.fotos.map((src,i)=>
@@ -1370,6 +1628,8 @@ async function avisarEspacio(){
 /* guardar */
 async function saveForm(next){
   if(F.bloqueado){toast('Este registro ya se envió y no se puede modificar');return;}
+  if(precisa){toast('Espera a que termine de precisar la ubicación');return;}
+  if(F.modo==='corr'){guardarCorreccion();return;}
   if(!F.tacho){const t=$('#fTacho');t.classList.remove('err');void t.offsetWidth;t.classList.add('err');t.focus();toast('Escribe el número del contenedor');return;}
   if(!F.ruta){toast('Selecciona la ruta');$('#fRuta').focus();return;}
   if(F.nuevo){
@@ -1396,7 +1656,7 @@ async function saveForm(next){
   const j=getJ(),now=Date.now(),old=F.id?records.find(r=>r.id===F.id):null;
   const r=old||{id:uuid(),createdAt:now};
   r.data={fecha:old?old.data.fecha:j.fecha,hora:old?old.data.hora:hhmm(),ciudad:old?(old.data.ciudad||j.ciudad):j.ciudad,r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,
-    tacho:F.tacho,ruta:F.ruta,items:{...F.items},limpieza:F.limpieza,golpes:F.golpes,chocado:F.chocado,cambioCont:F.cambioCont,obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc,dist:F.dist,nuevo:F.nuevo};
+    tacho:F.tacho,ruta:F.ruta,items:{...F.items},siniestro:F.modo==='prev'?(F.siniestro||''):undefined,limpieza:F.limpieza,golpes:F.golpes,chocado:F.chocado,cambioCont:F.cambioCont,obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc,dist:F.dist,nuevo:F.nuevo};
   if(F.fotosChanged){
     r.fotos=F.fotos.slice();
     r.fotosUrl=F.fotosUrl.slice();
@@ -1405,13 +1665,13 @@ async function saveForm(next){
     r.fotos=fotosDe(r); r.fotosUrl=urlsDe(r);
     delete r.foto; delete r.fotoUrl;
   }
-  r.updatedAt=now;r.status='pending';
+  r.updatedAt=now;r.status='pending';r.modo=F.modo;
   try{await dbPut(r);}catch(e){toast('No se pudo guardar en el teléfono. Revisa el espacio disponible.');return;}
   if(!old){records.push(r);lastNewId=r.id;}
-  try{localStorage.removeItem('gtm-draft');}catch(e){}
+  try{localStorage.removeItem(DRAFT);}catch(e){}
   const tach=F.tacho;
   if(navigator.vibrate)navigator.vibrate([10,40,10]);
-  if(next){F=blank();dirtyForm=false;$('#fTitle').textContent='Nuevo contenedor';$('#fSub').textContent='Hoja de revisión';$('#fDel').style.display='none';buildForm();$('#shBody').scrollTo({top:0,behavior:'smooth'});startGPS();setTimeout(()=>$('#fTacho').focus(),300);}
+  if(next){F=blank();dirtyForm=false;$('#fTitle').textContent=F.modo==='prev'?'Nuevo preventivo':'Nuevo contenedor';$('#fSub').textContent=subForm();$('#fDel').style.display='none';buildForm();$('#shBody').scrollTo({top:0,behavior:'smooth'});startGPS();setTimeout(()=>$('#fTacho').focus(),300);}
   else closeForm(true);
   renderAll();
   toast(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg> Contenedor ${esc(tach)} guardado${navigator.onLine?'':' en el teléfono'}`);
@@ -1423,12 +1683,257 @@ $('#btnNew').addEventListener('click',()=>openForm(null,false));
 $('#btnCat').addEventListener('click',()=>openForm(null,true));
 
 /* =====================================================================
+   CORRECTIVO · lo que el preventivo dejó en Ajuste o Cambio
+   La lista sale de la pestaña «Correctivo · CIUDAD» y se guarda en el
+   teléfono. Encima se suman los preventivos de este teléfono que aún no
+   llegan, y las correcciones hechas aquí: así funciona igual sin señal.
+   ===================================================================== */
+const ciudadMia=()=>String(((sesionPortal()||{}).ciudad)||((getJ()||{}).ciudad)||'').trim().toUpperCase();
+const pendKey=()=>'gtm-pend-'+ciudadMia();
+const pendCache=()=>{const P=LS.get(pendKey(),null);return (P&&Array.isArray(P.items))?P:{t:0,items:[]};};
+const fCorta=f=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(f||'');return m?`${m[3]}/${m[2]}/${m[1].slice(2)}`:(f||'—');};
+const accionTxt=x=>`${x.a||''}${x.q>1?' ×'+x.q:''}`;
+const normB=t=>String(t??'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+let trayendo=false,pendError='',otraVez=false;
+const CF={q:'',fecha:'',ruta:'',item:'',est:'abiertos'};
+
+async function traerPendientes(){
+  if(!CONFIG.APPS_SCRIPT_URL||!navigator.onLine)return;
+  // si ya hay una descarga en curso, se repite al terminar: pudo salir antes
+  // de que llegara un preventivo recien enviado
+  if(trayendo){otraVez=true;return;}
+  trayendo=true;otraVez=false;if(MODO==='corr')pintarInfoCorr();
+  try{
+    const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
+    const r=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify({action:'pendientes',hoja:hojaCorr(ciudadMia())}),redirect:'follow',signal:ctl.signal});
+    clearTimeout(to);
+    const j=await r.json();
+    if(j&&j.ok&&Array.isArray(j.items)){LS.set(pendKey(),{t:Date.now(),items:j.items});pendError='';}
+    else pendError=(j&&j.error)||'respuesta inesperada';
+  }catch(e){pendError=String(e&&e.message||e);}
+  trayendo=false;
+  if(MODO==='corr')renderList();
+  if(otraVez){otraVez=false;traerPendientes();}
+}
+
+function indiceCorr(){
+  const mia=ciudadMia(),M=new Map();
+  pendCache().items.forEach(x=>M.set(x.id,{...x}));
+  records.forEach(r=>{
+    if(modoDe(r)!=='prev')return;
+    if(mia&&String(r.data.ciudad||'').toUpperCase()!==mia)return;
+    itemsDePrev(r).forEach(x=>{if(!M.has(x.id))M.set(x.id,{...x,e:'Pendiente',local:r.status!=='sent'});});
+  });
+  records.filter(r=>modoDe(r)==='corr').sort((a,b)=>a.createdAt-b.createdAt).forEach(r=>{
+    (r.data.items||[]).forEach(x=>{
+      if(!x.res||(r.ya||[]).includes(x.id))return;
+      let y=M.get(x.id);
+      if(!y){if(mia&&String(x.ciu||'').toUpperCase()!==mia)return;y={...x};M.set(x.id,y);}
+      if(y.e==='Corregido'&&x.res!=='Corregido')return;   // en la hoja ya esta corregido
+      y.e=x.res;y.fc=r.data.fecha;y.rc=[r.data.r1,r.data.r2].filter(Boolean).join(' / ');
+      y.corrPend=r.status!=='sent';
+    });
+  });
+  return M;
+}
+
+function llenarSel(sel,vacio,pares,valor){
+  const el=$(sel);
+  el.innerHTML=`<option value="">${vacio}</option>`+pares.map(([v,t])=>`<option value="${esc(v)}"${v===valor?' selected':''}>${esc(t)}</option>`).join('');
+  if(valor&&!pares.some(p=>p[0]===valor)){el.add(new Option(valor+' · 0',valor));el.value=valor;}
+  el.classList.toggle('on',!!valor);
+}
+function contar(arr,f){const m=new Map();arr.forEach(x=>{const k=f(x);if(k)m.set(k,(m.get(k)||0)+1);});return m;}
+
+function pintarInfoCorr(txtExtra){
+  const P=pendCache(),el=$('#cInfo');if(!el)return;
+  const partes=[];
+  if(txtExtra)partes.push(txtExtra);
+  if(trayendo)partes.push('Actualizando la lista…');
+  else if(P.t)partes.push(`Lista del ${new Date(P.t).toLocaleDateString('es-EC',{day:'numeric',month:'short'})} ${hhmm(new Date(P.t))}`);
+  else partes.push(navigator.onLine?'La lista aún no se descarga':'La lista se descargará cuando haya internet');
+  if(!navigator.onLine){if(P.t)partes.push('sin conexión: usando la guardada');}
+  else if(pendError&&!trayendo)partes.push('no se pudo actualizar');
+  el.textContent=partes.join(' · ');
+}
+
+function renderCorr(todays){
+  const all=[...indiceCorr().values()];
+  const abiertos=all.filter(x=>x.e!=='Corregido');
+  const corrHoy=todays.reduce((n,r)=>n+(r.data.items||[]).filter(x=>x.res==='Corregido').length,0);
+  $('#sN').textContent=abiertos.length;
+  $('#sC').textContent=new Set(abiertos.map(x=>x.t)).size;
+  $('#sA').textContent=corrHoy;
+
+  const base=CF.est==='abiertos'?abiertos:(CF.est==='Corregido'?all.filter(x=>x.e==='Corregido'):all);
+  // las opciones de cada filtro se cuentan sobre lo que dejan los otros dos
+  const pasa=(x,sin)=>(sin==='fecha'||!CF.fecha||x.fp===CF.fecha)&&(sin==='ruta'||!CF.ruta||x.r===CF.ruta)&&(sin==='item'||!CF.item||x.i===CF.item);
+  const fechas=[...contar(base.filter(x=>pasa(x,'fecha')),x=>x.fp)].sort((a,b)=>b[0].localeCompare(a[0]));
+  llenarSel('#cFecha','Cualquier fecha',fechas.map(([k,n])=>[k,`${fCorta(k)} · ${n}`]),CF.fecha);
+  const rutas=[...contar(base.filter(x=>pasa(x,'ruta')),x=>x.r)].sort((a,b)=>a[0].localeCompare(b[0],'es',{numeric:true}));
+  llenarSel('#cRuta','Todas las rutas',rutas.map(([k,n])=>[k,`${k} · ${n}`]),CF.ruta);
+  const its=[...contar(base.filter(x=>pasa(x,'item')),x=>x.i)].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'es'));
+  llenarSel('#cItem','Todos los ítems',its.map(([k,n])=>[k,`${k} · ${n}`]),CF.item);
+  document.querySelectorAll('#cEst [data-e]').forEach(b=>b.classList.toggle('on',b.dataset.e===CF.est));
+  $('#cLimpiar').style.display=(CF.q||CF.fecha||CF.ruta||CF.item)?'':'none';
+
+  const toks=normB(CF.q).split(/\s+/).filter(Boolean);
+  const hit=base.filter(x=>{
+    if(!pasa(x))return false;
+    if(!toks.length)return true;
+    const hay=normB([x.t,x.r,x.i,x.g,x.a,x.fp,fCorta(x.fp),x.rp].join(' '));
+    return toks.every(t=>hay.includes(t));
+  });
+  // por contenedor: lo mas viejo primero, que es lo que lleva mas tiempo esperando
+  const G=new Map();
+  hit.forEach(x=>{const k=x.t;if(!G.has(k))G.set(k,[]);G.get(k).push(x);});
+  const lista=[...G.entries()].map(([t,xs])=>({t,xs,fp:xs.reduce((m,x)=>x.fp&&x.fp<m?x.fp:m,'9999'),r:xs[0].r}))
+    .sort((a,b)=>a.fp.localeCompare(b.fp)||String(a.t).localeCompare(String(b.t),undefined,{numeric:true}));
+  const TOPE=80,L=$('#cList');
+  const total=G.size,filtrado=!!(toks.length||CF.fecha||CF.ruta||CF.item);
+  pintarInfoCorr(`${plural(hit.length,'ítem')} en ${plural(total,'contenedor','contenedores')}${filtrado?' con ese filtro':''}`);
+  if(!lista.length){
+    const P=pendCache();
+    L.innerHTML=`<div class="empty"><b>${filtrado?'Nada con ese filtro':(CF.est==='Corregido'?'Nada corregido aún':'Sin pendientes')}</b>${
+      filtrado?'Prueba con otro número, ruta o ítem.':
+      (!P.t&&!abiertos.length?(navigator.onLine?'Toca «Actualizar» para descargar la lista.':'La lista se descargará cuando haya internet.')
+        :'Cuando un preventivo marque ajustes o cambios, aparecerán aquí.')}</div>`;
+    return;
+  }
+  const marca=t=>{let s=esc(t);if(CF.item&&t===CF.item)return `<mark>${s}</mark>`;
+    if(toks.length&&toks.some(k=>normB(t).includes(k)))return `<mark>${s}</mark>`;return s;};
+  L.innerHTML=lista.slice(0,TOPE).map(g=>{
+    const ab=g.xs.filter(x=>x.e!=='Corregido');
+    const c=ab.filter(x=>x.a==='Cambio').reduce((n,x)=>n+(x.q||1),0),a=ab.filter(x=>x.a==='Ajuste').length;
+    const sin=ab.filter(x=>x.g==='Siniestrado').map(x=>x.a),hechos=g.xs.filter(x=>x.e==='Corregido').length;
+    const np=ab.filter(x=>x.e==='No se pudo').length,local=g.xs.some(x=>x.local||x.corrPend);
+    const tags=[];
+    if(c)tags.push(`<span class="tag c">${plural(c,'cambio')}</span>`);
+    if(a)tags.push(`<span class="tag a">${plural(a,'ajuste')}</span>`);
+    sin.forEach(s=>tags.push(`<span class="tag x">${esc(s)}</span>`));
+    if(np)tags.push(`<span class="tag x">${np} no se pudo</span>`);
+    if(hechos)tags.push(`<span class="tag h">${plural(hechos,'corregido')}</span>`);
+    return `<button class="rec" data-t="${esc(g.t)}" style="--_c:${routeColor(g.r)}">
+      <div class="rec-l"><div class="rec-id">${esc(g.t)}</div><div class="rec-rt">${esc(g.r||'Sin ruta')}</div></div>
+      <div class="rec-m">${tags.join('')}<div class="mini">${g.xs.map(x=>marca(x.i)).join(' · ')}</div></div>
+      <div class="rec-r"><span>${fCorta(g.fp)}</span>${local?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" aria-label="En el teléfono"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>':''}</div>
+    </button>`;
+  }).join('')+(lista.length>TOPE?`<div class="mas">Mostrando ${TOPE} de ${lista.length}. Escribe un número o elige una ruta para afinar.</div>`:'');
+}
+
+/* la ficha de corrección de un contenedor */
+function corrSegHTML(id){
+  const v=F.res[id]||'',s=v==='Corregido'?'h':(v==='No se pudo'?'n':'p'),i={p:0,h:1,n:2}[s];
+  return `<div class="seg corr" data-ci="${esc(id)}" data-s="${s}" style="--i:${i}"><span class="ind"></span>`+
+    `<button data-cv=""${s==='p'?' class="on"':''} aria-label="Sin marcar">—</button>`+
+    `<button data-cv="Corregido"${s==='h'?' class="on"':''}>Hecho</button>`+
+    `<button data-cv="No se pudo"${s==='n'?' class="on"':''}>No se pudo</button></div>`;
+}
+function openCorr(tacho,rec){
+  if(!getJ()){openJornada();return;}
+  let items;
+  if(rec)items=(rec.data.items||[]).map(x=>({...x}));
+  else{
+    const M=indiceCorr();
+    items=[...M.values()].filter(x=>String(x.t)===String(tacho)&&x.e!=='Corregido')
+      .sort((a,b)=>(a.fp||'').localeCompare(b.fp||'')||(ORDER_PREV.indexOf(String(a.id).split('·').pop())-ORDER_PREV.indexOf(String(b.id).split('·').pop())));
+    if(!items.length){
+      const mio=records.filter(r=>modoDe(r)==='corr'&&String(r.data.tacho)===String(tacho)).sort((a,b)=>b.createdAt-a.createdAt)[0];
+      if(mio){openCorr(tacho,mio);return;}
+      toast(`El contenedor ${esc(tacho)} ya no tiene ítems pendientes`);return;
+    }
+  }
+  F={...blank(),modo:'corr',id:rec?rec.id:null,tacho:String(tacho),ruta:(rec?rec.data.ruta:items[0].r)||'',
+    corrItems:items,res:{},obs:rec?(rec.data.obs||''):'',
+    fotos:rec?fotosDe(rec):[],fotosUrl:rec?urlsDe(rec):[],
+    lat:rec?rec.data.lat:null,lng:rec?rec.data.lng:null,acc:rec?rec.data.acc:null,bloqueado:!!(rec&&rec.status==='sent')};
+  if(rec)items.forEach(x=>{if(x.res)F.res[x.id]=x.res;});
+  dirtyForm=false;
+  $('#fTitle').textContent=`Contenedor ${F.tacho}`;
+  $('#fSub').textContent=rec?(rec.status==='sent'?'Corrección enviada · solo lectura':'Corrección guardada en el teléfono')
+    :`Correctivo · ${plural(items.length,'ítem')} por resolver`;
+  $('#fDel').style.display=rec?'grid':'none';
+  $('#sheet').classList.toggle('visto',!!F.bloqueado);
+  $('#fSave').style.display=F.bloqueado?'none':'';
+  $('#fNext').style.display='none';
+  buildCorr();
+  $('#sheet').classList.add('open');$('#sheet').setAttribute('aria-hidden','false');
+  $('#shBody').scrollTop=0;document.body.style.overflow='hidden';
+  if(F.lat==null&&!F.bloqueado)startGPS();else paintGPS();
+}
+function buildCorr(){
+  $('#fBody').innerHTML=`
+    <div class="chips" style="margin-top:0">${F.ruta?`<span class="chip">${esc(F.ruta)}</span>`:''}<span class="chip">${esc(ciudadMia()||'')}</span></div>
+    <div class="chips" id="fChips"></div>
+    <div class="sec-t"><h4>Por corregir</h4><div class="legend"><span><i style="background:var(--teal)"></i>Hecho</span><span><i style="background:var(--red)"></i>No se pudo</span></div></div>
+    <div class="grp open">
+      ${F.bloqueado?'':'<div class="grp-tools" style="padding-top:10px"><button data-allh>Marcar todo hecho</button></div>'}
+      ${F.corrItems.map((x,n)=>`<div class="it"${n===0&&F.bloqueado?' style="border-top:0"':''}><div class="it-row"><div class="it-n">${esc(x.i)}
+        <small>${esc(accionTxt(x))} · preventivo ${fCorta(x.fp)}${!F.id&&x.e==='No se pudo'?' · <b style="color:var(--red)">antes no se pudo</b>':''}</small></div>
+        ${corrSegHTML(x.id)}</div></div>`).join('')}
+    </div>
+    <div class="sec-t"><h4>Observaciones</h4><small>Obligatorio si algo no se pudo</small></div>
+    <textarea class="obs" id="fObs" placeholder="Qué se hizo, repuestos usados, o por qué no se pudo…">${esc(F.obs)}</textarea>
+    <div class="photo" id="fPhoto"></div>`;
+  paintPhoto();paintChips();paintSum();
+  if(F.bloqueado)sellarForm();
+}
+async function guardarCorreccion(){
+  const marcados=F.corrItems.filter(x=>F.res[x.id]);
+  if(!marcados.length){toast('Marca al menos un ítem: Hecho o No se pudo');return;}
+  const falta=CONFIG.MIN_FOTOS_CORR-cuantasFotos(F);
+  if(falta>0){
+    toast(`Falta${falta===1?'':'n'} ${plural(falta,'foto')}: se necesitan ${CONFIG.MIN_FOTOS_CORR} para guardar`);
+    const el=$('#fPhoto');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});return;
+  }
+  if(marcados.some(x=>F.res[x.id]==='No se pudo')&&!F.obs.trim()){
+    toast('Cuenta en observaciones por qué no se pudo');const o=$('#fObs');if(o){o.focus();o.scrollIntoView({behavior:'smooth',block:'center'});}return;
+  }
+  const j=getJ(),now=Date.now(),old=F.id?records.find(r=>r.id===F.id):null;
+  const r=old||{id:uuid(),createdAt:now};
+  r.modo='corr';
+  r.data={fecha:old?old.data.fecha:j.fecha,hora:old?old.data.hora:hhmm(),ciudad:old?(old.data.ciudad||j.ciudad):j.ciudad,
+    r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,tacho:F.tacho,ruta:F.ruta,
+    items:F.corrItems.map(x=>({id:x.id,prev:x.prev,fp:x.fp,ciu:x.ciu,t:x.t,r:x.r,g:x.g,i:x.i,a:x.a,q:x.q,rp:x.rp,res:F.res[x.id]||''})),
+    obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc};
+  r.fotos=F.fotos.slice();r.fotosUrl=F.fotosUrl.slice();
+  r.updatedAt=now;r.status='pending';
+  try{await dbPut(r);}catch(e){toast('No se pudo guardar en el teléfono. Revisa el espacio disponible.');return;}
+  if(!old){records.push(r);lastNewId=r.id;}
+  if(navigator.vibrate)navigator.vibrate([10,40,10]);
+  const tach=F.tacho;closeForm(true);renderAll();
+  toast(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg> Corrección del ${esc(tach)} guardada${navigator.onLine?'':' en el teléfono'}`);
+  syncNow();
+}
+$('#cList').addEventListener('click',e=>{const b=e.target.closest('.rec');if(b)openCorr(b.dataset.t);});
+let cQT=null;
+$('#cQ').addEventListener('input',e=>{clearTimeout(cQT);cQT=setTimeout(()=>{CF.q=e.target.value.trim();renderList();},140);});
+['cFecha','cRuta','cItem'].forEach(id=>$('#'+id).addEventListener('change',e=>{
+  CF[{cFecha:'fecha',cRuta:'ruta',cItem:'item'}[id]]=e.target.value;renderList();}));
+$('#cEst').addEventListener('click',e=>{const b=e.target.closest('[data-e]');if(!b)return;CF.est=b.dataset.e;renderList();});
+$('#cLimpiar').addEventListener('click',()=>{CF.q='';CF.fecha='';CF.ruta='';CF.item='';$('#cQ').value='';renderList();});
+$('#cAct').addEventListener('click',()=>{
+  if(!navigator.onLine){toast('Sin conexión: estás viendo la lista guardada');return;}
+  syncNow();traerPendientes();
+});
+
+/* =====================================================================
    RESUMEN Y RESPALDO
    ===================================================================== */
 function openSummary(){
-  const j=getJ(),day=j?j.fecha:todayISO(),list=records.filter(r=>r.data.fecha===day);
-  const rows=ORDER.map(k=>{let c=0,a=0;list.forEach(r=>{const v=r.data.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {k,c,a};}).filter(x=>x.c||x.a);
-  const ch=list.filter(r=>r.data.chocado).length,cc=list.filter(r=>r.data.cambioCont).length;
+  const j=getJ(),day=j?j.fecha:todayISO(),list=records.filter(r=>modoDe(r)===MODO&&r.data.fecha===day);
+  if(MODO==='corr'){
+    const m=new Map();
+    list.forEach(r=>(r.data.items||[]).forEach(x=>{if(!x.res)return;const y=m.get(x.i)||{h:0,n:0};y[x.res==='Corregido'?'h':'n']++;m.set(x.i,y);}));
+    const rows=[...m].sort((a,b)=>b[1].h-a[1].h);
+    const th=rows.reduce((n,x)=>n+x[1].h,0),tn=rows.reduce((n,x)=>n+x[1].n,0);
+    $('#sSub').textContent=`${plural(list.length,'contenedor atendido','contenedores atendidos')} · ${plural(th,'ítem corregido','ítems corregidos')}${tn?` · ${tn} no se pudo`:''}`;
+    $('#sBody').innerHTML=rows.length?`<table class="tbl"><thead><tr><th>Ítem</th><th class="n">Hechos</th><th class="n">No se pudo</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n" style="color:var(--teal)">${v.h||'–'}</td><td class="n" style="color:var(--red)">${v.n||'–'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="padding:24px">Sin correcciones registradas hoy.</div>';
+    $('#mS').classList.add('open');return;
+  }
+  const rows=(MODO==='prev'?ORDER_PREV:ORDER).map(k=>{let c=0,a=0;list.forEach(r=>{const v=r.data.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {k,c,a};}).filter(x=>x.c||x.a);
+  const ch=list.filter(r=>r.data.chocado||r.data.siniestro==='Chocado').length,cc=list.filter(r=>r.data.cambioCont).length;
   let tc=0,ta=0;rows.forEach(x=>{tc+=x.c;ta+=x.a;});
   $('#sSub').textContent=`${plural(list.length,'contenedor revisado','contenedores revisados')} · ${plural(tc,'cambio')} · ${plural(ta,'ajuste')}${ch?` · ${plural(ch,'chocado')}`:''}${cc?` · ${plural(cc,'cambio de contenedor','cambios de contenedor')}`:''}`;
   $('#sBody').innerHTML=rows.length?`<table class="tbl"><thead><tr><th>Punto</th><th class="n">Cambios</th><th class="n">Ajustes</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(LABEL[x.k])}</td><td class="n c">${x.c||'–'}</td><td class="n a">${x.a||'–'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="padding:24px">Sin cambios ni ajustes registrados hoy.</div>';
@@ -1438,8 +1943,9 @@ $('#btnSum').addEventListener('click',openSummary);$('#btnSum2').addEventListene
 $('#sClose').addEventListener('click',()=>$('#mS').classList.remove('open'));
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m&&m.id!=='mJ')m.classList.remove('open');}));
 $('#sCsv').addEventListener('click',()=>{
-  if(!records.length){toast('Aún no hay registros para descargar');return;}
-  const sorted=records.slice().sort((a,b)=>a.createdAt-b.createdAt);
+  const deMiModo=records.filter(r=>modoDe(r)===MODO);
+  if(!deMiModo.length){toast('Aún no hay registros para descargar');return;}
+  const sorted=deMiModo.slice().sort((a,b)=>a.createdAt-b.createdAt);
   const maxF=Math.max(1,...sorted.map(r=>fotosDe(r).length+urlsDe(r).length));
   const colsF=['Fotos'].concat(Array.from({length:maxF},(_,i)=>'Foto '+(i+1)));
   const heads=['ID','Estado'].concat(toFields(sorted[0]).map(f=>f[0]),colsF);
@@ -1452,7 +1958,7 @@ $('#sCsv').addEventListener('click',()=>{
     for(let i=0;i<maxF;i++)m['Foto '+(i+1)]=us[i]||(i<us.length+pend?'(en el teléfono)':'');
     return heads.map(h=>q(m[h])).join(',');}));
   const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`mantenimiento_respaldo_${todayISO()}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${({rev:'mantenimiento',prev:'preventivo',corr:'correctivo'})[MODO]}_respaldo_${todayISO()}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 });
 
 /* =====================================================================
@@ -1503,7 +2009,35 @@ function avisarVersion(){
 function renderAll(){renderJornada();renderList();renderNet();}
 // Si la persona entró por el portal, le dejamos el camino de regreso
 if(sesionPortal()){$('#volver').style.display='grid';$('#jVolver').style.display='block';}
-if(puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
+if(MODO==='rev'&&puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
+/* el mismo esqueleto para los tres modos; cambia lo que se ve */
+(function vestirModo(){
+  if(MODO==='rev')return;
+  const T={prev:['Mantenimiento preventivo','Nuevo preventivo','Preventivos de hoy'],
+           corr:['Mantenimiento correctivo','','Tus correcciones de hoy']}[MODO];
+  $('#hTitle').textContent=T[0];document.title=T[0]+' · GLOBECO SMART';
+  $('#lTitle').textContent=T[2];
+  $('#btnNew').lastChild.textContent=T[1];
+  if(MODO==='corr'){
+    $('#corrBox').style.display='';
+    document.querySelector('.bbar').style.display='none';
+    $('#kN').textContent='Ítems pendientes';$('#kC').textContent='Contenedores';$('#kA').textContent='Corregidos hoy';
+    document.querySelector('.st.a .n').style.color='var(--teal)';
+    $('#list').style.paddingBottom='40px';
+  }
+})();
+/* sin el permiso del modo, no se deja registrar (el portal tampoco muestra
+   el boton, pero alguien puede tener el enlace guardado) */
+function sinPermisoModo(){
+  if(MODO==='rev')return false;
+  const per=MODO==='prev'?CONFIG.PERMISO_PREV:CONFIG.PERMISO_CORR;
+  if(puede(per))return false;
+  const m=$('#mSin');
+  m.querySelector('h2').textContent='Sin permiso';
+  m.querySelector('p.sub').innerHTML=`Tu ficha no tiene el permiso <b>${esc(per)}</b>. Pídele a tu supervisor que lo agregue en la columna «Permisos acceso» de la Base de identificaciones.`;
+  m.querySelector('.primary').textContent='Volver al portal';
+  m.classList.add('open');return true;
+}
 (async function start(){
   paintThemeBtn();despertar();
   try{await dbOpen();records=await dbAll();}catch(e){toast('Este navegador no permite guardar datos. Usa Chrome o Safari actualizados.');}
@@ -1511,6 +2045,7 @@ if(puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
   renderAll();paintInstall();
   const ses=sesionPortal();
   if(!ses){sinSesion();return;}
+  if(sinPermisoModo())return;
   // La base guardada puede traer otra ciudad: o porque la persona cambio de
   // ciudad, o porque se lleno antes de que existiera la columna. Se limpia
   // mirando las filas, no solo la etiqueta.
@@ -1530,8 +2065,9 @@ if(puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
   // la jornada se vuelve a confirmar si cambio el dia, la persona o su CIUDAD:
   // la ciudad del registro sale de la jornada, y no puede quedar la anterior
   if(!j||j.fecha!==todayISO()||j.r1!==ses.nombre||String(j.ciudad||'').toUpperCase()!==String(ses.ciudad||'').toUpperCase())openJornada();
-  else if(LS.get('gtm-draft',null))setTimeout(()=>openForm(null),300);
+  else if(MODO!=='corr'&&LS.get(DRAFT,null))setTimeout(()=>openForm(null),300);
   refreshGeo();syncNow();
+  if(MODO==='corr')traerPendientes();
   registrarSW();
 })();
 </script>
