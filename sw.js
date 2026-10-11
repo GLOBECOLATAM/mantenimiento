@@ -1,5 +1,5 @@
 /* GLOBECO SMART · Mantenimiento — guarda la app para usarla sin internet */
-const CACHE = 'gtm-mant-v14';
+const CACHE = 'gtm-mant-v15';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<title>Mantenimiento · GLOBECO SMART</title>
+<title>Levantamiento de contenedores · GLOBECO SMART</title>
 <script>(function(){try{var t=localStorage.getItem('gt-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -343,7 +343,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
     <div class="hdr-row">
       <a class="ibtn volver" id="volver" href="/portal/" aria-label="Volver al portal" style="display:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
       <span class="mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9.5 3h5v3h-5z"/><path d="m9.5 13 2 2 3.5-4"/></svg></span>
-      <div class="ttl"><b id="hTitle">Mantenimiento</b><small>GLOBECO SMART</small></div>
+      <div class="ttl"><b id="hTitle">Levantamiento</b><small id="hSub">Registro de contenedores</small></div>
       <button class="ibtn" id="btnSum" aria-label="Resumen del día"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
       <button class="ibtn" id="themeBtn" aria-label="Cambiar tema"></button>
     </div>
@@ -362,7 +362,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
   <div class="install" id="install"></div>
 
   <div class="stats">
-    <div class="st"><div class="n" id="sN">0</div><div class="k" id="kN">Revisados</div></div>
+    <div class="st"><div class="n" id="sN">0</div><div class="k" id="kN">Registrados</div></div>
     <div class="st c"><div class="n" id="sC">0</div><div class="k" id="kC">Cambios</div></div>
     <div class="st a"><div class="n" id="sA">0</div><div class="k" id="kA">Ajustes</div></div>
   </div>
@@ -392,7 +392,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
 
 <div class="bbar"><div class="in">
   <button class="secondary" id="btnCat" style="display:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><path d="M12 8v5M9.5 10.5h5"/></svg>Contenedor nuevo</button>
-  <button class="primary" id="btnNew"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Revisar contenedor</button>
+  <button class="primary" id="btnNew"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nuevo</button>
 </div></div>
 
 <!-- formulario de contenedor -->
@@ -455,7 +455,7 @@ footer b{background:var(--grad-text);background-size:200% 100%;-webkit-backgroun
 
 <div class="modal" id="mSin"><div class="mcard">
   <h2>Entra desde el portal</h2>
-  <p class="sub">Para registrar contenedores necesitamos saber quién eres. Abre el portal, ingresa con tu cédula y tu PIN, y vuelve a entrar a Mantenimiento desde ahí.</p>
+  <p class="sub">Para registrar contenedores necesitamos saber quién eres. Abre el portal, ingresa con tu cédula y tu PIN, y vuelve a entrar desde ahí.</p>
   <div class="mbtns"><a class="primary" href="/portal/" style="text-decoration:none">Ir al portal</a></div>
 </div></div>
 
@@ -938,7 +938,7 @@ function renderJornada(){
   $('#jBase').textContent=GEO.list.length
     ? `Contenedores de ${ciu||'tu ciudad'}: ${GEO.list.length} · actualizado ${new Date(GEO.t).toLocaleDateString('es-EC',{day:'numeric',month:'short'})} ${hhmm(new Date(GEO.t))}`
     : (GEO.t
-        ? `${ciu||'Tu ciudad'} todavía no tiene contenedores registrados. Usa «Contenedor nuevo» para empezar a catastrarlos.`
+        ? `${ciu||'Tu ciudad'} todavía no tiene contenedores registrados. Usa «Nuevo» para empezar a registrarlos.`
         : 'La base de contenedores se descargará cuando haya internet.');
 }
 
@@ -957,7 +957,7 @@ function renderList(){
   }
   const others=mios.filter(r=>r.data.fecha!==day&&r.status!=='sent').length;
   const L=$('#list');
-  const VACIO={rev:['Aún no hay revisiones','Toca «Revisar contenedor» para registrar el primero.'],
+  const VACIO={rev:['Aún no hay contenedores registrados','Toca «Nuevo» para registrar el primero.'],
     prev:['Aún no hay preventivos','Toca «Nuevo preventivo» para registrar el primero.'],
     corr:['Sin correcciones hoy','Busca arriba el contenedor y marca lo que corregiste.']}[MODO];
   if(!todays.length){L.innerHTML=`<div class="empty"><b>${VACIO[0]}</b>${VACIO[1]}${others?`<br><br>${plural(others,'registro')} de días anteriores pendiente${others>1?'s':''} de envío.`:''}</div>`;return;}
@@ -1391,6 +1391,11 @@ body.addEventListener('click',e=>{
   const rmu=e.target.closest('[data-rmurl]');
   if(rmu){F.fotosUrl.splice(Number(rmu.dataset.rmurl),1);F.fotosChanged=true;changed();paintPhoto();return;}
   if(e.target.closest('[data-gps]')){startGPS();return;}
+  if(e.target.closest('[data-acatastro]')){
+    const t=F.tacho;closeForm(true);
+    setTimeout(()=>{openForm(null,true);if(F&&F.nuevo){F.tacho=t;const i=$('#fTacho');if(i)i.value=t;changed();paintChips();pintarFicha();}},380);
+    return;
+  }
   const dup=e.target.closest('[data-open]');
   if(dup){const r=records.find(x=>x.id===dup.dataset.open);if(r){closeForm(true);setTimeout(()=>openForm(r),380);}return;}
 });
@@ -1487,7 +1492,10 @@ function paintChips(){
     if(!F.bloqueado&&('geolocation' in navigator))out.push('<button class="chip prec" data-precisar>Precisar ubicación</button>');
   }
   if(F.dist!=null)out.push(F.dist<=120?`<span class="chip good">A ${Math.round(F.dist)} m del punto registrado</span>`:`<span class="chip warn">A ${F.dist>=1000?(F.dist/1000).toFixed(1)+' km':Math.round(F.dist)+' m'} del punto registrado</span>`);
-  if(F.tacho&&GEO.list.length&&!GEOMAP.get(F.tacho.toLowerCase()))out.push('<span class="chip warn">No está en GEO TRACK · elige la ruta</span>');
+  if(F.tacho&&GEO.list.length&&!GEOMAP.get(F.tacho.toLowerCase())&&!F.nuevo)
+    out.push(MODO==='rev'&&!F.id&&puede(CONFIG.PERMISO_CATASTRO)
+      ?'<span class="chip warn">No está en GEO TRACK · <button data-acatastro>Registrar como contenedor nuevo</button></span>'
+      :'<span class="chip warn">No está en GEO TRACK · elige la ruta</span>');
   const j=getJ(),dup=F.modo!=='corr'&&F.tacho&&records.find(r=>r.id!==F.id&&modoDe(r)===F.modo&&r.data.fecha===(j&&j.fecha)&&r.data.tacho===F.tacho);
   if(dup)out.push(`<span class="chip bad">Ya lo revisaste hoy · <button data-open="${dup.id}">Abrir</button></span>`);
   el.innerHTML=out.join('');
@@ -2009,13 +2017,15 @@ function avisarVersion(){
 function renderAll(){renderJornada();renderList();renderNet();}
 // Si la persona entró por el portal, le dejamos el camino de regreso
 if(sesionPortal()){$('#volver').style.display='grid';$('#jVolver').style.display='block';}
-if(MODO==='rev'&&puede(CONFIG.PERMISO_CATASTRO))$('#btnCat').style.display='grid';
+/* registro: un solo botón «Nuevo». Si el número no está en GEO TRACK, el mismo
+   formulario ofrece pasarlo a catastro (a quien tenga permiso). */
 /* el mismo esqueleto para los tres modos; cambia lo que se ve */
 (function vestirModo(){
   if(MODO==='rev')return;
   const T={prev:['Mantenimiento preventivo','Nuevo preventivo','Preventivos de hoy'],
            corr:['Mantenimiento correctivo','','Tus correcciones de hoy']}[MODO];
   $('#hTitle').textContent=T[0];document.title=T[0]+' · GLOBECO SMART';
+  $('#hSub').textContent='GLOBECO SMART';
   $('#lTitle').textContent=T[2];
   $('#btnNew').lastChild.textContent=T[1];
   if(MODO==='corr'){
