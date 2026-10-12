@@ -1494,7 +1494,7 @@ function paintChips(){
   if(F.dist!=null)out.push(F.dist<=120?`<span class="chip good">A ${Math.round(F.dist)} m del punto registrado</span>`:`<span class="chip warn">A ${F.dist>=1000?(F.dist/1000).toFixed(1)+' km':Math.round(F.dist)+' m'} del punto registrado</span>`);
   if(F.tacho&&GEO.list.length&&!GEOMAP.get(F.tacho.toLowerCase())&&!F.nuevo)
     out.push(MODO==='rev'&&!F.id&&puede(CONFIG.PERMISO_CATASTRO)
-      ?'<span class="chip warn">No está en GEO TRACK · <button data-acatastro>Registrar como contenedor nuevo</button></span>'
+      ?'<span class="chip good">Contenedor nuevo · se agregará a GEO TRACK al guardar</span>'
       :'<span class="chip warn">No está en GEO TRACK · elige la ruta</span>');
   const j=getJ(),dup=F.modo!=='corr'&&F.tacho&&records.find(r=>r.id!==F.id&&modoDe(r)===F.modo&&r.data.fecha===(j&&j.fecha)&&r.data.tacho===F.tacho);
   if(dup)out.push(`<span class="chip bad">Ya lo revisaste hoy · <button data-open="${dup.id}">Abrir</button></span>`);
@@ -1633,6 +1633,12 @@ async function avisarEspacio(){
   }catch(e){}
 }
 
+/* ¿este registro debe entrar a GEO TRACK como contenedor nuevo? */
+function esCatastroAuto(){
+  return !!(F&&MODO==='rev'&&F.modo!=='prev'&&F.modo!=='corr'&&!F.id&&!F.nuevo&&F.tacho&&GEO.list.length&&
+    !GEOMAP.has(F.tacho.toLowerCase())&&puede(CONFIG.PERMISO_CATASTRO));
+}
+
 /* guardar */
 async function saveForm(next){
   if(F.bloqueado){toast('Este registro ya se envió y no se puede modificar');return;}
@@ -1640,7 +1646,10 @@ async function saveForm(next){
   if(F.modo==='corr'){guardarCorreccion();return;}
   if(!F.tacho){const t=$('#fTacho');t.classList.remove('err');void t.offsetWidth;t.classList.add('err');t.focus();toast('Escribe el número del contenedor');return;}
   if(!F.ruta){toast('Selecciona la ruta');$('#fRuta').focus();return;}
-  if(F.nuevo){
+  // Registro con un solo botón «Nuevo»: si el número no está en GEO TRACK y la
+  // persona puede catastrar, se guarda como contenedor nuevo y entra a GEO TRACK
+  const autoCat=esCatastroAuto();
+  if(F.nuevo||autoCat){
     if(GEOMAP.has(F.tacho.toLowerCase())){
       toast(`El número ${F.tacho} ya existe en GEO TRACK MANAGER`);
       $('#fTacho').focus();return;
@@ -1661,6 +1670,7 @@ async function saveForm(next){
       el.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:320,easing:'ease-out'});}
     return;
   }
+  if(autoCat)F.nuevo=true;
   const j=getJ(),now=Date.now(),old=F.id?records.find(r=>r.id===F.id):null;
   const r=old||{id:uuid(),createdAt:now};
   r.data={fecha:old?old.data.fecha:j.fecha,hora:old?old.data.hora:hhmm(),ciudad:old?(old.data.ciudad||j.ciudad):j.ciudad,r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,
