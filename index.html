@@ -190,6 +190,8 @@ input,textarea,select{font:inherit;color:inherit}
 .seg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);width:206px;flex:0 0 auto;padding:3px;border-radius:13px;background:var(--surface-2);border:1px solid var(--line)}
 .seg.dos{grid-template-columns:repeat(2,1fr);width:142px}
 .seg.dos .ind{width:calc((100% - 6px)/2)}
+.seg.sino{width:206px}
+.seg.sino[data-s="a"] button[data-v="h"]{color:#3B2600}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);border-radius:10px;transform:translateX(calc(var(--i,0)*100%));transition:transform .32s cubic-bezier(.2,.9,.25,1.15),background .3s;background:rgba(29,158,117,.2)}
 .seg[data-s="a"] .ind{background:var(--amber)}
 .seg[data-s="c"] .ind{background:var(--blue)}
@@ -530,7 +532,7 @@ Object.assign(I,{
   bolt:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6l2 3-2 3H9L7 6z"/><path d="M12 9v12M9.5 12.5h5M9.5 16h5"/></svg>'
 });
 const GROUPS_PREV=[
-  {id:'p1',t:'Limpieza externa',d:'Contenedor, tapa del lado del pedal y área periférica',ic:I.drop,items:[['p_hidrolavado','Hidrolavado'],['p_limpieza_manual','Limpieza manual'],['p_limpieza_externa','Limpieza externa']]},
+  {id:'p1',t:'Lavado',d:'Contenedor, tapa del lado del pedal y área periférica',ic:I.drop,items:[['p_lavado','Lavado']]},
   {id:'p2',t:'Ajuste de tapón',ic:I.plug,items:[['p_tapon','Ajuste de tapón']]},
   {id:'p3',t:'Sistema de apertura',d:'Tapa y pedal',ic:I.lid,items:[['p_tapa_normal','Tapa normal'],['p_tapa_buzon','Tapa buzón'],['p_marco_tapa','Marco de tapa'],['p_perno_tapa','Perno de tapa'],['p_cable','Cable'],['p_pedal','Pedal'],['p_soporte_pedal','Soporte de pedal'],['p_resorte_pedal','Resorte de pedal'],['p_amortiguador','Amortiguador'],['p_limitador','Limitador']]},
   {id:'p4',t:'Señalética · adhesivos',ic:I.tag,items:[['p_numeracion','Numeración'],['p_no_estacionarse','No estacionarse'],['p_adhesivo_lateral','Adhesivo lateral'],['p_linea_centraje','Línea de centraje']]},
@@ -541,7 +543,11 @@ const GROUPS_PREV=[
   {id:'p9',t:'Pernos, vinchas, bujes y remaches',ic:I.bolt,items:[['p_pernos','Pernos'],['p_vinchas','Vinchas'],['p_buje_tapa','Buje de tapa'],['p_remaches','Remaches']]}
 ];
 const ORDER_PREV=GROUPS_PREV.flatMap(g=>g.items.map(i=>i[0]));
-SOLO_CAMBIO.add('p_grafitis');
+/* Lavado: solo «Se hizo» o «No se hizo». Es preventivo puro: nunca va al correctivo. */
+const SINO=new Set(['p_lavado']);
+/* El lavado antes eran 3 puntos: un registro viejo que aún no se envió cuenta como lavado hecho */
+const LAVADO_VIEJO=['p_hidrolavado','p_limpieza_manual','p_limpieza_externa'];
+const lavadoHecho=d=>d.items.p_lavado==='h'||LAVADO_VIEJO.some(k=>d.items[k]!=null);
 const LABEL={},GRUPO_DE={};
 GROUPS.concat(GROUPS_PREV).forEach(g=>g.items.forEach(([k,l])=>{LABEL[k]=l;GRUPO_DE[k]=g;}));
 /* los grupos del formulario abierto */
@@ -996,15 +1002,17 @@ function hojaDe(r){
 }
 const hojaCorr=ciudad=>{const c=String(ciudad||'').trim().toUpperCase();return c?`${CONFIG.SHEET_CORR} · ${c}`:CONFIG.SHEET_CORR;};
 const estadoPrev=v=>v==='a'?'Ajuste':(typeof v==='number'?(v>1?`Cambio ×${v}`:'Cambio'):'OK');
+const estadoPrevDe=(d,k)=>SINO.has(k)?(lavadoHecho(d)?'Se hizo':'No se hizo'):estadoPrev(d.items[k]);
 /* Lo que un preventivo deja para el correctivo: un item por cada punto en
-   Ajuste o Cambio, mas el siniestro si lo hay. El ID es fijo (preventivo·clave)
+   CAMBIO, mas el siniestro si lo hay. El AJUSTE ya se hizo en el preventivo
+   y el lavado es solo preventivo: ninguno de los dos va al correctivo. El ID es fijo (preventivo·clave)
    para que el servidor nunca lo duplique, por mas veces que llegue. */
 function itemsDePrev(r){
   const d=r.data,out=[],base={prev:r.id,fp:d.fecha,ciu:(d.ciudad||'').toUpperCase(),t:d.tacho,r:d.ruta||'',
     rp:[d.r1,d.r2].filter(Boolean).join(' / ')};
   ORDER_PREV.forEach(k=>{
-    const v=d.items[k];if(v==null)return;
-    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:LABEL[k],a:v==='a'?'Ajuste':'Cambio',q:typeof v==='number'?v:1});
+    const v=d.items[k];if(typeof v!=='number')return;
+    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:LABEL[k],a:'Cambio',q:v});
   });
   if(d.siniestro)out.push({...base,id:`${r.id}·siniestro`,g:'Siniestrado',i:'Contenedor siniestrado',a:d.siniestro,q:1});
   return out;
@@ -1014,7 +1022,7 @@ function toFields(r){
   if(modoDe(r)==='prev'){
     const f=[['Fecha',d.fecha],['Hora',d.hora],['Ciudad',d.ciudad||''],['Responsable 1',d.r1],['Responsable 2',d.r2||''],['# Tacho',d.tacho],['Ruta',d.ruta||''],
       ['Latitud',d.lat??''],['Longitud',d.lng??''],['Precisión GPS (m)',d.acc!=null?Math.round(d.acc):''],['Distancia a GEO TRACK (m)',d.dist!=null?Math.round(d.dist):'']];
-    for(const k of ORDER_PREV)f.push([LABEL[k],estadoPrev(d.items[k])]);
+    for(const k of ORDER_PREV)f.push([LABEL[k],estadoPrevDe(d,k)]);
     f.push(['Siniestrado',d.siniestro||'OK'],['Total cambios',t.c],['Total ajustes',t.a],['Ítems para correctivo',itemsDePrev(r).length],
       ['Observaciones',d.obs||''],['Registrado',stamp(r.createdAt)],['Última edición',stamp(r.updatedAt)]);
     return f;
@@ -1221,9 +1229,16 @@ $('#fDel').addEventListener('click',async()=>{
   await dbDel(r.id);records=records.filter(x=>x.id!==r.id);closeForm(true);renderAll();toast('Registro eliminado');
 });
 
-function itemState(k){const v=F.items[k];return v==='a'?'a':(typeof v==='number'?'c':'ok');}
+function itemState(k){const v=F.items[k];return (v==='a'||v==='h')?'a':(typeof v==='number'?'c':'ok');}
 function itemHTML(k,l){
   const s=itemState(k),q=typeof F.items[k]==='number'?F.items[k]:1;
+  if(SINO.has(k)){
+    return `<div class="it" id="it-${k}">
+    <div class="it-row"><div class="it-n">${esc(l)}</div>
+      <div class="seg dos sino" data-k="${k}" data-s="${s}" style="--i:${s==='a'?1:0}"><span class="ind"></span>
+        <button data-v="ok" aria-label="${esc(l)}: no se hizo">No se hizo</button><button data-v="h" aria-label="${esc(l)}: se hizo">Se hizo</button>
+      </div></div></div>`;
+  }
   const dos=SOLO_CAMBIO.has(k);                       // sin la opcion «Ajuste»
   const i=dos?(s==='c'?1:0):{ok:0,a:1,c:2}[s];
   return `<div class="it" id="it-${k}">
@@ -1298,8 +1313,8 @@ function sinSegHTML(){
 function sinHTML(){
   return `<div class="it-row"><div class="it-n">Estado del contenedor<small>Si está quemado o chocado pasa al correctivo</small></div>${sinSegHTML()}</div>`;
 }
-function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {c,a};}
-function groupChip(g){const {c,a}=groupStatus(g);if(!c&&!a)return '<span class="grp-s">Todo OK</span>';return `<span class="grp-s has">${[c?plural(c,'cambio'):'',a?plural(a,'ajuste'):''].filter(Boolean).join(' · ')}</span>`;}
+function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='a'||v==='h')a++;else if(typeof v==='number')c+=v;});return {c,a};}
+function groupChip(g){if(g.items.length===1&&SINO.has(g.items[0][0]))return F.items[g.items[0][0]]==='h'?'<span class="grp-s has">Se hizo</span>':'<span class="grp-s">No se hizo</span>';const {c,a}=groupStatus(g);if(!c&&!a)return '<span class="grp-s">Todo OK</span>';return `<span class="grp-s has">${[c?plural(c,'cambio'):'',a?plural(a,'ajuste'):''].filter(Boolean).join(' · ')}</span>`;}
 function buildForm(){
   $('#fBody').innerHTML=`
     <label class="lbl" for="fTacho">Número del contenedor</label>
@@ -1317,7 +1332,7 @@ function buildForm(){
     ${grupos().map((g,gi)=>`<div class="grp${gi===0?' open':''}" id="g-${g.id}">
       <button class="grp-h" data-g="${g.id}"><span class="grp-ic">${g.ic}</span><span class="grp-t"><b>${esc(g.t)}</b><small>${g.d?esc(g.d)+' · ':''}${plural(g.items.length,'punto')}</small></span><span id="gs-${g.id}">${groupChip(g)}</span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
-      <div class="grp-b"><div><div class="grp-tools"><button data-allok="${g.id}">Marcar todo OK</button></div>${g.items.map(([k,l])=>itemHTML(k,l)).join('')}</div></div>
+      <div class="grp-b"><div>${g.items.every(([k])=>SINO.has(k))?'':`<div class="grp-tools"><button data-allok="${g.id}">Marcar todo OK</button></div>`}${g.items.map(([k,l])=>itemHTML(k,l)).join('')}</div></div>
     </div>`).join('')}
 
     ${F.modo==='prev'?`
@@ -1372,7 +1387,7 @@ body.addEventListener('click',e=>{
   if(e.target.closest('[data-gpsfin]')){terminarPrecision(false);return;}
   const segB=e.target.closest('.seg button');
   if(segB){const seg=segB.parentElement,k=seg.dataset.k,v=segB.dataset.v;
-    if(v==='ok')delete F.items[k];else if(v==='a')F.items[k]='a';else F.items[k]=typeof F.items[k]==='number'?F.items[k]:1;
+    if(v==='ok')delete F.items[k];else if(v==='h')F.items[k]='h';else if(v==='a')F.items[k]='a';else F.items[k]=typeof F.items[k]==='number'?F.items[k]:1;
     if(navigator.vibrate)navigator.vibrate(8);
     changed();paintItem(k);return;}
   const q=e.target.closest('[data-q]');
@@ -1435,8 +1450,8 @@ body.addEventListener('keydown',e=>{if(e.target.id==='fTacho'&&e.key==='Enter'){
 function changed(){dirtyForm=true;if(F&&!F.id&&F.modo!=='corr')LS.set(DRAFT,F);paintSum();}
 function paintItem(k){
   const s=itemState(k),seg=document.querySelector(`.seg[data-k="${k}"]`);if(!seg)return;
-  seg.dataset.s=s;seg.style.setProperty('--i',SOLO_CAMBIO.has(k)?(s==='c'?1:0):{ok:0,a:1,c:2}[s]);
-  const row=$('#it-'+k),qty=row.querySelector('.qty');qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=F.items[k];
+  seg.dataset.s=s;seg.style.setProperty('--i',SINO.has(k)?(s==='a'?1:0):SOLO_CAMBIO.has(k)?(s==='c'?1:0):{ok:0,a:1,c:2}[s]);
+  const row=$('#it-'+k),qty=row.querySelector('.qty');if(qty)qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=F.items[k];
   paintGroup(k);
 }
 function paintGroup(k){const g=grupos().find(x=>x.items.some(i=>i[0]===k));$('#gs-'+g.id).innerHTML=groupChip(g);groupsFlag();}
@@ -1950,7 +1965,7 @@ function openSummary(){
     $('#sBody').innerHTML=rows.length?`<table class="tbl"><thead><tr><th>Ítem</th><th class="n">Hechos</th><th class="n">No se pudo</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n" style="color:var(--teal)">${v.h||'–'}</td><td class="n" style="color:var(--red)">${v.n||'–'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="padding:24px">Sin correcciones registradas hoy.</div>';
     $('#mS').classList.add('open');return;
   }
-  const rows=(MODO==='prev'?ORDER_PREV:ORDER).map(k=>{let c=0,a=0;list.forEach(r=>{const v=r.data.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;});return {k,c,a};}).filter(x=>x.c||x.a);
+  const rows=(MODO==='prev'?ORDER_PREV:ORDER).map(k=>{let c=0,a=0;list.forEach(r=>{const v=r.data.items[k];if(v==='a'||v==='h')a++;else if(typeof v==='number')c+=v;});return {k,c,a};}).filter(x=>x.c||x.a);
   const ch=list.filter(r=>r.data.chocado||r.data.siniestro==='Chocado').length,cc=list.filter(r=>r.data.cambioCont).length;
   let tc=0,ta=0;rows.forEach(x=>{tc+=x.c;ta+=x.a;});
   $('#sSub').textContent=`${plural(list.length,'contenedor revisado','contenedores revisados')} · ${plural(tc,'cambio')} · ${plural(ta,'ajuste')}${ch?` · ${plural(ch,'chocado')}`:''}${cc?` · ${plural(cc,'cambio de contenedor','cambios de contenedor')}`:''}`;
