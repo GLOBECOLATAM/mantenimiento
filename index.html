@@ -191,6 +191,13 @@ input,textarea,select{font:inherit;color:inherit}
 .seg.dos{grid-template-columns:repeat(2,1fr);width:142px}
 .seg.dos .ind{width:calc((100% - 6px)/2)}
 .seg.sino{width:206px}
+.seg.multi .ind{display:none}
+.seg.multi button{border-radius:10px;transition:background .2s,color .2s}
+.seg.multi button.on[data-v="ok"]{background:rgba(29,158,117,.2);color:var(--teal)}
+.seg.multi button.on[data-v="a"]{background:var(--amber);color:#fff}
+.seg.multi button.on[data-v="c"]{background:var(--blue);color:#fff}
+.seg.multi button+button{margin-left:2px}
+.grp-tools .mhint{margin-right:auto;font-size:11.5px;color:var(--muted);align-self:center}
 .seg.sino[data-s="a"] button[data-v="h"]{color:#3B2600}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);border-radius:10px;transform:translateX(calc(var(--i,0)*100%));transition:transform .32s cubic-bezier(.2,.9,.25,1.15),background .3s;background:rgba(29,158,117,.2)}
 .seg[data-s="a"] .ind{background:var(--amber)}
@@ -566,7 +573,13 @@ const stamp=t=>{const d=new Date(t);return `${d.getFullYear()}-${pad(d.getMonth(
 const plural=(n,s,p)=>`${n} ${n===1?s:(p||s+'s')}`;
 function routeColor(r){let h=0;for(const ch of String(r||''))h=(h*31+ch.charCodeAt(0))%360;return `hsl(${(h+200)%360} 60% 55%)`;}
 function haversine(a,b,c,d){const R=6371000,t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-b),s=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
-function totals(d){let c=0,a=0;for(const k in d.items){const v=d.items[k];if(v==='a')a++;else if(typeof v==='number')c+=v;}return {c,a};}
+/* Un punto puede quedar en OK, Ajuste, Cambio, o Ajuste + Cambio a la vez
+   (en preventivo: se ajustó en sitio Y además necesita cambio → correctivo).
+   Valores: 'a' · número de piezas · {a:1,c:n} · 'h' (lavado hecho). */
+const vAj=v=>v==='a'||!!(v&&typeof v==='object'&&v.a);
+const vC=v=>typeof v==='number'?v:(v&&typeof v==='object'&&v.c?v.c:0);
+const mkV=(a,c)=>a&&c?{a:1,c}:a?'a':c?c:undefined;
+function totals(d){let c=0,a=0;for(const k in d.items){const v=d.items[k];if(vAj(v))a++;c+=vC(v);}return {c,a};}
 let toastT=null;
 function toast(msg){const t=$('#toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
 const LS={get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
@@ -1001,7 +1014,7 @@ function hojaDe(r){
   const c=(r.data.ciudad||'').trim().toUpperCase();return c?`${base} · ${c}`:base;
 }
 const hojaCorr=ciudad=>{const c=String(ciudad||'').trim().toUpperCase();return c?`${CONFIG.SHEET_CORR} · ${c}`:CONFIG.SHEET_CORR;};
-const estadoPrev=v=>v==='a'?'Ajuste':(typeof v==='number'?(v>1?`Cambio ×${v}`:'Cambio'):'OK');
+const estadoPrev=v=>{const a=vAj(v),c=vC(v);return [a?'Ajuste':'',c?(c>1?`Cambio ×${c}`:'Cambio'):''].filter(Boolean).join(' + ')||'OK';};
 const estadoPrevDe=(d,k)=>SINO.has(k)?(lavadoHecho(d)?'Se hizo':'No se hizo'):estadoPrev(d.items[k]);
 /* Lo que un preventivo deja para el correctivo: un item por cada punto en
    CAMBIO, mas el siniestro si lo hay. El AJUSTE ya se hizo en el preventivo
@@ -1011,8 +1024,8 @@ function itemsDePrev(r){
   const d=r.data,out=[],base={prev:r.id,fp:d.fecha,ciu:(d.ciudad||'').toUpperCase(),t:d.tacho,r:d.ruta||'',
     rp:[d.r1,d.r2].filter(Boolean).join(' / ')};
   ORDER_PREV.forEach(k=>{
-    const v=d.items[k];if(typeof v!=='number')return;
-    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:LABEL[k],a:'Cambio',q:v});
+    const c=vC(d.items[k]);if(!c)return;
+    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:LABEL[k],a:'Cambio',q:c});
   });
   if(d.siniestro)out.push({...base,id:`${r.id}·siniestro`,g:'Siniestrado',i:'Contenedor siniestrado',a:d.siniestro,q:1});
   return out;
@@ -1229,9 +1242,20 @@ $('#fDel').addEventListener('click',async()=>{
   await dbDel(r.id);records=records.filter(x=>x.id!==r.id);closeForm(true);renderAll();toast('Registro eliminado');
 });
 
-function itemState(k){const v=F.items[k];return (v==='a'||v==='h')?'a':(typeof v==='number'?'c':'ok');}
+function itemState(k){const v=F.items[k];return v==='h'?'a':vC(v)?'c':vAj(v)?'a':'ok';}
+const multiPrev=k=>F&&F.modo==='prev'&&!SINO.has(k)&&!SOLO_CAMBIO.has(k);
 function itemHTML(k,l){
-  const s=itemState(k),q=typeof F.items[k]==='number'?F.items[k]:1;
+  const s=itemState(k),q=vC(F.items[k])||1;
+  if(multiPrev(k)){
+    const v=F.items[k],a=vAj(v),c=vC(v);
+    return `<div class="it" id="it-${k}">
+    <div class="it-row"><div class="it-n">${esc(l)}</div>
+      <div class="seg multi" data-k="${k}">
+        <button data-v="ok" class="${!a&&!c?'on':''}" aria-pressed="${!a&&!c}" aria-label="${esc(l)}: bien">OK</button><button data-v="a" class="${a?'on':''}" aria-pressed="${a}" aria-label="${esc(l)}: ajuste">Ajuste</button><button data-v="c" class="${c?'on':''}" aria-pressed="${!!c}" aria-label="${esc(l)}: cambio">Cambio</button>
+      </div></div>
+    <div class="qty${c?' show':''}"><span>Piezas a cambiar</span><div class="step"><button data-q="-1" data-k="${k}" aria-label="Menos">−</button><output id="q-${k}">${q}</output><button data-q="1" data-k="${k}" aria-label="Más">+</button></div></div>
+  </div>`;
+  }
   if(SINO.has(k)){
     return `<div class="it" id="it-${k}">
     <div class="it-row"><div class="it-n">${esc(l)}</div>
@@ -1313,7 +1337,7 @@ function sinSegHTML(){
 function sinHTML(){
   return `<div class="it-row"><div class="it-n">Estado del contenedor<small>Si está quemado o chocado pasa al correctivo</small></div>${sinSegHTML()}</div>`;
 }
-function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='a'||v==='h')a++;else if(typeof v==='number')c+=v;});return {c,a};}
+function groupStatus(g){let c=0,a=0;g.items.forEach(([k])=>{const v=F.items[k];if(v==='h'||vAj(v))a++;c+=vC(v);});return {c,a};}
 function groupChip(g){if(g.items.length===1&&SINO.has(g.items[0][0]))return F.items[g.items[0][0]]==='h'?'<span class="grp-s has">Se hizo</span>':'<span class="grp-s">No se hizo</span>';const {c,a}=groupStatus(g);if(!c&&!a)return '<span class="grp-s">Todo OK</span>';return `<span class="grp-s has">${[c?plural(c,'cambio'):'',a?plural(a,'ajuste'):''].filter(Boolean).join(' · ')}</span>`;}
 function buildForm(){
   $('#fBody').innerHTML=`
@@ -1332,7 +1356,7 @@ function buildForm(){
     ${grupos().map((g,gi)=>`<div class="grp${gi===0?' open':''}" id="g-${g.id}">
       <button class="grp-h" data-g="${g.id}"><span class="grp-ic">${g.ic}</span><span class="grp-t"><b>${esc(g.t)}</b><small>${g.d?esc(g.d)+' · ':''}${plural(g.items.length,'punto')}</small></span><span id="gs-${g.id}">${groupChip(g)}</span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
-      <div class="grp-b"><div>${g.items.every(([k])=>SINO.has(k))?'':`<div class="grp-tools"><button data-allok="${g.id}">Marcar todo OK</button></div>`}${g.items.map(([k,l])=>itemHTML(k,l)).join('')}</div></div>
+      <div class="grp-b"><div>${g.items.every(([k])=>SINO.has(k))?'':`<div class="grp-tools">${F.modo==='prev'?'<span class="mhint">Ajuste y Cambio se pueden marcar juntos</span>':''}<button data-allok="${g.id}">Marcar todo OK</button></div>`}${g.items.map(([k,l])=>itemHTML(k,l)).join('')}</div></div>
     </div>`).join('')}
 
     ${F.modo==='prev'?`
@@ -1387,11 +1411,16 @@ body.addEventListener('click',e=>{
   if(e.target.closest('[data-gpsfin]')){terminarPrecision(false);return;}
   const segB=e.target.closest('.seg button');
   if(segB){const seg=segB.parentElement,k=seg.dataset.k,v=segB.dataset.v;
-    if(v==='ok')delete F.items[k];else if(v==='h')F.items[k]='h';else if(v==='a')F.items[k]='a';else F.items[k]=typeof F.items[k]==='number'?F.items[k]:1;
+    if(seg.classList.contains('multi')){
+      const cur=F.items[k];let a=vAj(cur),c=vC(cur);
+      if(v==='ok'){a=false;c=0;}else if(v==='a')a=!a;else c=c?0:1;
+      const nv=mkV(a,c);if(nv===undefined)delete F.items[k];else F.items[k]=nv;
+    }
+    else if(v==='ok')delete F.items[k];else if(v==='h')F.items[k]='h';else if(v==='a')F.items[k]='a';else F.items[k]=vC(F.items[k])||1;
     if(navigator.vibrate)navigator.vibrate(8);
     changed();paintItem(k);return;}
   const q=e.target.closest('[data-q]');
-  if(q){const k=q.dataset.k;F.items[k]=Math.max(1,Math.min(99,(F.items[k]||1)+Number(q.dataset.q)));$('#q-'+k).textContent=F.items[k];changed();paintGroup(k);return;}
+  if(q){const k=q.dataset.k,cur=F.items[k],n=Math.max(1,Math.min(99,(vC(cur)||1)+Number(q.dataset.q)));F.items[k]=mkV(vAj(cur),n);$('#q-'+k).textContent=n;changed();paintGroup(k);return;}
   const gh=e.target.closest('.grp-h');
   if(gh){$('#g-'+gh.dataset.g).classList.toggle('open');return;}
   const ao=e.target.closest('[data-allok]');
@@ -1450,8 +1479,15 @@ body.addEventListener('keydown',e=>{if(e.target.id==='fTacho'&&e.key==='Enter'){
 function changed(){dirtyForm=true;if(F&&!F.id&&F.modo!=='corr')LS.set(DRAFT,F);paintSum();}
 function paintItem(k){
   const s=itemState(k),seg=document.querySelector(`.seg[data-k="${k}"]`);if(!seg)return;
+  const row=$('#it-'+k),qty=row.querySelector('.qty');
+  if(seg.classList.contains('multi')){
+    const v=F.items[k],a=vAj(v),c=vC(v);
+    seg.querySelectorAll('button').forEach(b=>{const on=b.dataset.v==='ok'?(!a&&!c):b.dataset.v==='a'?a:!!c;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+    if(qty)qty.classList.toggle('show',!!c);if(c)$('#q-'+k).textContent=c;
+    paintGroup(k);return;
+  }
   seg.dataset.s=s;seg.style.setProperty('--i',SINO.has(k)?(s==='a'?1:0):SOLO_CAMBIO.has(k)?(s==='c'?1:0):{ok:0,a:1,c:2}[s]);
-  const row=$('#it-'+k),qty=row.querySelector('.qty');if(qty)qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=F.items[k];
+  if(qty)qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=vC(F.items[k]);
   paintGroup(k);
 }
 function paintGroup(k){const g=grupos().find(x=>x.items.some(i=>i[0]===k));$('#gs-'+g.id).innerHTML=groupChip(g);groupsFlag();}
@@ -1965,7 +2001,7 @@ function openSummary(){
     $('#sBody').innerHTML=rows.length?`<table class="tbl"><thead><tr><th>Ítem</th><th class="n">Hechos</th><th class="n">No se pudo</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n" style="color:var(--teal)">${v.h||'–'}</td><td class="n" style="color:var(--red)">${v.n||'–'}</td></tr>`).join('')}</tbody></table>`:'<div class="empty" style="padding:24px">Sin correcciones registradas hoy.</div>';
     $('#mS').classList.add('open');return;
   }
-  const rows=(MODO==='prev'?ORDER_PREV:ORDER).map(k=>{let c=0,a=0;list.forEach(r=>{const v=r.data.items[k];if(v==='a'||v==='h')a++;else if(typeof v==='number')c+=v;});return {k,c,a};}).filter(x=>x.c||x.a);
+  const rows=(MODO==='prev'?ORDER_PREV:ORDER).map(k=>{let c=0,a=0;list.forEach(r=>{const v=r.data.items[k];if(v==='h'||vAj(v))a++;c+=vC(v);});return {k,c,a};}).filter(x=>x.c||x.a);
   const ch=list.filter(r=>r.data.chocado||r.data.siniestro==='Chocado').length,cc=list.filter(r=>r.data.cambioCont).length;
   let tc=0,ta=0;rows.forEach(x=>{tc+=x.c;ta+=x.a;});
   $('#sSub').textContent=`${plural(list.length,'contenedor revisado','contenedores revisados')} · ${plural(tc,'cambio')} · ${plural(ta,'ajuste')}${ch?` · ${plural(ch,'chocado')}`:''}${cc?` · ${plural(cc,'cambio de contenedor','cambios de contenedor')}`:''}`;
