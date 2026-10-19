@@ -272,6 +272,15 @@ input,textarea,select{font:inherit;color:inherit}
 .photo label{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:14px;border:1px dashed var(--line);font-size:14px;font-weight:600;cursor:pointer;justify-content:center}
 .photo label{display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:14px;border:1px dashed var(--line);font-size:14px;font-weight:600;cursor:pointer;flex:1;justify-content:center}
 .photo input{display:none}
+.adw{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.adg{border:1px solid var(--line);border-radius:16px;padding:10px;min-width:0}
+.adg.ok{border-color:color-mix(in srgb,var(--teal) 45%,var(--line))}
+.adg .fotos{grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px}
+.adg label{padding:10px 8px;font-size:12.5px;gap:6px}
+.adg .thumb .n{white-space:nowrap;font-size:9.5px}
+.adh{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:13px;margin-bottom:8px}
+.adh span{font-size:11px;font-weight:700}.adh .falta{color:var(--amber)}.adh .listo{color:var(--teal)}
+.photo>.adg{margin-top:10px}
 .thumb{position:relative;width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--surface-2)}
 .thumb .n{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:99px}
 .thumb a.ver{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--blue);text-align:center;padding:4px}
@@ -1079,7 +1088,7 @@ async function syncNow(){
         };
       }
       const pend=fotosDe(r);
-      if(pend.length){payload.fotos=pend;payload.fotoName=`${r.data.fecha}_${r.data.tacho}_${r.id.slice(0,6)}`;}
+      if(pend.length){payload.fotos=pend;payload.fotoName=`${r.data.fecha}_${r.data.tacho}_${r.id.slice(0,6)}`;const _t=tiposDe(r);if(_t.some(Boolean))payload.fotoTipos=_t.map(x=>x==='a'?'antes':x==='d'?'despues':'');}
       const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
       const res=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload),signal:ctl.signal,redirect:'follow'});
       clearTimeout(to);
@@ -1090,7 +1099,7 @@ async function syncNow(){
       // El servidor devuelve los enlaces que quedaron en la hoja. Si el ID ya
       // estaba cerrado, devuelve los de la primera vez: esos son los que valen.
       if(Array.isArray(j.fotoUrls)&&j.fotoUrls.length){r.fotosUrl=j.fotoUrls;}
-      r.fotos=[];delete r.foto;delete r.fotoUrl;   // libera el espacio del teléfono
+      r.fotos=[];r.fotosTipo=[];delete r.foto;delete r.fotoUrl;   // libera el espacio del teléfono
       if(j.cerrado)r.cerrado=true;
       if(r.data.nuevo&&j.geo&&j.geo.ok){
         // el contenedor ya existe: entra a la base local para que nadie
@@ -1137,7 +1146,7 @@ async function enviarCorreccion(r){
     fecha:d.fecha,hora:d.hora,responsables:[d.r1,d.r2].filter(Boolean).join(' / '),obs:d.obs||'',
     lat:d.lat??null,lng:d.lng??null,acc:d.acc??null,items:(d.items||[]).filter(x=>x.res)};
   const fs=fotosDe(r);
-  if(fs.length){payload.fotos=fs;payload.fotoName=`corr_${d.fecha}_${d.tacho}_${r.id.slice(0,6)}`;}
+  if(fs.length){payload.fotos=fs;payload.fotoName=`corr_${d.fecha}_${d.tacho}_${r.id.slice(0,6)}`;const _t=tiposDe(r);if(_t.some(Boolean))payload.fotoTipos=_t.map(x=>x==='a'?'antes':x==='d'?'despues':'');}
   const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
   const res=await fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload),signal:ctl.signal,redirect:'follow'});
   clearTimeout(to);
@@ -1146,7 +1155,7 @@ async function enviarCorreccion(r){
   ultimoError='';
   r.status='sent';r.sentAt=Date.now();
   if(Array.isArray(j.fotoUrls)&&j.fotoUrls.length)r.fotosUrl=j.fotoUrls;
-  r.fotos=[];
+  r.fotos=[];r.fotosTipo=[];
   if(Array.isArray(j.ya)&&j.ya.length){
     // otra persona los cerro primero: en la hoja vale lo suyo
     r.ya=j.ya;
@@ -1192,22 +1201,44 @@ setInterval(()=>{if(navigator.onLine)syncNow();},30000);
    FORMULARIO DE CONTENEDOR
    ===================================================================== */
 let F=null,dirtyForm=false,gpsWatch=null;
-const blank=()=>({modo:MODO,siniestro:'',id:null,tacho:'',ruta:'',items:{},limpieza:false,golpes:false,chocado:false,cambioCont:false,obs:'',fotos:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false,nuevo:false,qr:'NO',gidsa:'N/A'});
+const blank=()=>({modo:MODO,siniestro:'',id:null,tacho:'',ruta:'',items:{},limpieza:false,golpes:false,chocado:false,cambioCont:false,obs:'',fotos:[],fotosTipo:[],fotosUrl:[],fotosChanged:false,lat:null,lng:null,acc:null,dist:null,bloqueado:false,nuevo:false,qr:'NO',gidsa:'N/A'});
 /* Los registros viejos guardaban UNA foto en «foto»/«fotoUrl». Esto los lee
    igual que los nuevos, para no perder nada de lo que ya esta en los telefonos. */
 const fotosDe=r=>Array.isArray(r.fotos)?r.fotos.filter(Boolean):(r.foto?[r.foto]:[]);
 const urlsDe =r=>Array.isArray(r.fotosUrl)?r.fotosUrl.filter(Boolean):(r.fotoUrl?[r.fotoUrl]:[]);
 const cuantasFotos=f=>f.fotos.length+f.fotosUrl.length;
+/* Preventivo y correctivo: 2 fotos «Antes» y 2 «Después». Obligatoria 1 de cada.
+   Las pendientes llevan su tipo en fotosTipo ('a'|'d'); las ya enviadas lo
+   llevan en el enlace (#antes / #despues). */
+const FOTOS_GRUPO=2;
+const usaAD=()=>!!(F&&(F.modo==='prev'||F.modo==='corr'));
+const tipoUrl=u=>/#antes\b/i.test(u)?'a':/#despues\b/i.test(u)?'d':'';
+const tiposDe=r=>{const n=fotosDe(r).length,t=Array.isArray(r.fotosTipo)?r.fotosTipo.slice(0,n):[];while(t.length<n)t.push('');return t;};
+function cuentaAD(f){const c={a:0,d:0,o:0};
+  (f.fotosTipo||[]).forEach(t=>{c[t==='a'||t==='d'?t:'o']++;});
+  for(let i=(f.fotosTipo||[]).length;i<f.fotos.length;i++)c.o++;
+  f.fotosUrl.forEach(u=>{c[tipoUrl(u)||'o']++;});return c;}
+/* antes primero, después al final: así quedan en la hoja y en el acta */
+function ordenarAD(f){const T=f.fotosTipo||[],o={a:0,d:1,'':2};
+  const z=f.fotos.map((x,i)=>[x,T[i]||'',i]).sort((p,q)=>o[p[1]]-o[q[1]]||p[2]-q[2]);
+  f.fotos=z.map(x=>x[0]);f.fotosTipo=z.map(x=>x[1]);}
+function faltaAD(f){const c=cuentaAD(f),m=[];if(!c.a)m.push('1 foto de «Antes»');if(!c.d)m.push('1 foto de «Después»');return m;}
+function avisarFaltaAD(m){
+  toast(`Falta ${m.join(' y ')} para guardar`);
+  const el=$('#fPhoto');
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:320,easing:'ease-out'});}
+}
 const minFotos=()=>(F&&F.modo==='corr')?CONFIG.MIN_FOTOS_CORR:CONFIG.MIN_FOTOS;
 function openForm(rec,nuevo){
   if(!getJ()){openJornada();return;}
   if(rec&&modoDe(rec)==='corr'){openCorr(rec.data.tacho,rec);return;}
   if(nuevo&&!puede(CONFIG.PERMISO_CATASTRO)){toast('No tienes permiso para catastrar contenedores');return;}
   if(rec){const d=rec.data;F={...blank(),modo:modoDe(rec),siniestro:d.siniestro||'',id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},limpieza:!!d.limpieza,golpes:!!d.golpes,chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',nuevo:!!d.nuevo,
-    fotos:fotosDe(rec),fotosUrl:urlsDe(rec),lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist,
+    fotos:fotosDe(rec),fotosTipo:tiposDe(rec),fotosUrl:urlsDe(rec),lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist,
     qr:d.qr||'NO',gidsa:d.gidsa||'N/A',bloqueado:rec.status==='sent'};}
   else if(nuevo){F={...blank(),nuevo:true};}
-  else{const dr=LS.get(DRAFT,null);F=dr&&!dr.id?{...blank(),...dr,fotos:Array.isArray(dr.fotos)?dr.fotos:[],fotosUrl:[],fotosChanged:!!(dr.fotos&&dr.fotos.length)}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
+  else{const dr=LS.get(DRAFT,null);F=dr&&!dr.id?{...blank(),...dr,fotos:Array.isArray(dr.fotos)?dr.fotos:[],fotosTipo:tiposDe(dr),fotosUrl:[],fotosChanged:!!(dr.fotos&&dr.fotos.length)}:blank();if(dr&&!dr.id&&(dr.tacho||Object.keys(dr.items||{}).length))setTimeout(()=>toast('Recuperé el contenedor que dejaste sin guardar'),500);}
   dirtyForm=false;
   $('#fTitle').textContent=rec?`Contenedor ${rec.data.tacho}`:(F.nuevo?'Contenedor nuevo':(F.modo==='prev'?'Nuevo preventivo':'Nuevo contenedor'));
   $('#fSub').textContent=rec?(rec.status==='sent'?'Enviado · solo lectura':'Guardado en el teléfono')
@@ -1431,7 +1462,7 @@ body.addEventListener('click',e=>{
   const sg=e.target.closest('#fSugg button');
   if(sg){setTacho(sg.dataset.n);$('#fSugg').classList.remove('show');$('#fTacho').blur();return;}
   const rmf=e.target.closest('[data-rmfoto]');
-  if(rmf){F.fotos.splice(Number(rmf.dataset.rmfoto),1);F.fotosChanged=true;changed();paintPhoto();return;}
+  if(rmf){F.fotos.splice(Number(rmf.dataset.rmfoto),1);if(F.fotosTipo)F.fotosTipo.splice(Number(rmf.dataset.rmfoto),1);F.fotosChanged=true;changed();paintPhoto();return;}
   const rmu=e.target.closest('[data-rmurl]');
   if(rmu){F.fotosUrl.splice(Number(rmu.dataset.rmurl),1);F.fotosChanged=true;changed();paintPhoto();return;}
   if(e.target.closest('[data-gps]')){startGPS();return;}
@@ -1471,7 +1502,7 @@ body.addEventListener('change',e=>{
     changed();
   }
   if(e.target.id==='gQR'){F.qr=e.target.value;changed();}
-  if(e.target.id==='fFile'){const fs=e.target.files;if(fs&&fs.length){agregarFotos(fs);e.target.value='';}}
+  if(e.target.id==='fFile'||e.target.id==='fFileA'||e.target.id==='fFileD'){const fs=e.target.files;if(fs&&fs.length){agregarFotos(fs,e.target.id==='fFileA'?'a':e.target.id==='fFileD'?'d':'');e.target.value='';}}
 });
 body.addEventListener('focusout',e=>{if(e.target.id==='fTacho')setTimeout(()=>$('#fSugg')&&$('#fSugg').classList.remove('show'),180);});
 body.addEventListener('keydown',e=>{if(e.target.id==='fTacho'&&e.key==='Enter'){e.preventDefault();$('#fSugg').classList.remove('show');e.target.blur();}});
@@ -1616,6 +1647,7 @@ function terminarPrecision(cancelar){
    cuando se acumulan sin señal. */
 function paintPhoto(){
   const el=$('#fPhoto');if(!el)return;
+  if(usaAD()){paintPhotoAD(el);return;}
   const n=cuantasFotos(F),min=minFotos(),falta=Math.max(0,min-n);
   const pct=Math.min(100,Math.round(n/min*100));
 
@@ -1639,6 +1671,31 @@ function paintPhoto(){
      <input type="file" id="fFile" accept="image/*" multiple>`);
 }
 
+const CAM_SVG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+function paintPhotoAD(el){
+  const c=cuentaAD(F),T=F.fotosTipo||[];
+  const grupo=(t,nom)=>{
+    let k=0;
+    const th=F.fotos.map((src,i)=>(T[i]||'')!==t?'':
+        `<div class="thumb"><img src="${src}" alt="${nom} ${++k}"><span class="n">${nom} ${k}</span>`+
+        (F.bloqueado?'':`<button data-rmfoto="${i}" aria-label="Quitar foto">×</button>`)+`</div>`)
+      .concat(F.fotosUrl.map((u,i)=>(tipoUrl(u)||'')!==t?'':
+        `<div class="thumb"><a class="ver" href="${esc(u)}" target="_blank" rel="noopener">Ver ${t?nom.toLowerCase():'foto'} ${++k}</a>`+
+        (F.bloqueado?'':`<button data-rmurl="${i}" aria-label="Quitar foto">×</button>`)+`</div>`)).join('');
+    const n=t?c[t]:c.o;
+    if(!t)return n?`<div class="adg"><div class="adh"><b>Otras fotos</b></div><div class="fotos">${th}</div></div>`:'';
+    const lleno=n>=FOTOS_GRUPO,id=t==='a'?'fFileA':'fFileD';
+    return `<div class="adg${n?' ok':''}"><div class="adh"><b>${nom}</b><span class="${n?'listo':'falta'}">${n} de ${FOTOS_GRUPO}${n?'':' · obligatoria 1'}</span></div>
+      <div class="fotos">${th}</div>`+
+      (F.bloqueado||lleno?'':`<label for="${id}">${CAM_SVG}${n?'Agregar otra':'Foto de '+nom.toLowerCase()}</label><input type="file" id="${id}" accept="image/*" multiple>`)+`</div>`;
+  };
+  const listo=c.a&&c.d;
+  el.innerHTML=(F.bloqueado
+      ?`<div class="fcount"><span>${plural(cuantasFotos(F),'foto')} ${cuantasFotos(F)===1?'adjunta':'adjuntas'}</span></div>`
+      :`<div class="fcount"><span>Fotos · antes y después</span><span class="${listo?'listo':'falta'}">${listo?'completo':'mínimo 1 y 1'}</span></div>`)+
+    `<div class="adw">${grupo('a','Antes')}${grupo('d','Después')}</div>${grupo('','')}`;
+}
+
 /* Reduce una foto y devuelve el data URL. Se hace de a una para no dejar
    cuatro imagenes enteras en memoria a la vez en un telefono de gama baja. */
 function reducirFoto(file){
@@ -1659,12 +1716,17 @@ function reducirFoto(file){
   });
 }
 
-async function agregarFotos(files){
-  const lista=[...files].filter(f=>f&&/^image\//.test(f.type||''));
+async function agregarFotos(files,tipo){
+  let lista=[...files].filter(f=>f&&/^image\//.test(f.type||''));
   if(!lista.length){toast('Eso no es una imagen');return;}
+  if(!F.fotosTipo)F.fotosTipo=[];
+  while(F.fotosTipo.length<F.fotos.length)F.fotosTipo.push('');
+  if(tipo){const cab=FOTOS_GRUPO-cuentaAD(F)[tipo];
+    if(cab<=0){toast(`Ya hay ${FOTOS_GRUPO} fotos de «${tipo==='a'?'Antes':'Después'}»`);return;}
+    if(lista.length>cab){toast(`Solo caben ${plural(cab,'foto')} más de «${tipo==='a'?'Antes':'Después'}»`);lista=lista.slice(0,cab);}}
   let sumadas=0,fallidas=0;
   for(const f of lista){
-    try{F.fotos.push(await reducirFoto(f));sumadas++;F.fotosChanged=true;changed();paintPhoto();}
+    try{const d=await reducirFoto(f);F.fotos.push(d);F.fotosTipo.push(tipo||'');sumadas++;F.fotosChanged=true;changed();paintPhoto();}
     catch(e){fallidas++;}
   }
   if(fallidas)toast(`No pude leer ${plural(fallidas,'foto')}`);
@@ -1713,7 +1775,8 @@ async function saveForm(next){
     // un punto con mucho error manda el contenedor a otra cuadra
     if(F.acc!=null&&F.acc>40&&!confirm(`El GPS tiene ${Math.round(F.acc)} m de error. Si guardas así, el punto puede quedar lejos del contenedor.\n\n¿Guardar de todos modos?`))return;
   }
-  const nf=cuantasFotos(F),falta=CONFIG.MIN_FOTOS-nf;
+  const nf=cuantasFotos(F),falta=usaAD()?0:CONFIG.MIN_FOTOS-nf;
+  if(usaAD()){const m=faltaAD(F);if(m.length){avisarFaltaAD(m);return;}}
   if(falta>0){
     toast(`Falta${falta===1?'':'n'} ${plural(falta,'foto')}: se necesitan ${CONFIG.MIN_FOTOS} para guardar`);
     const el=$('#fPhoto');
@@ -1727,7 +1790,9 @@ async function saveForm(next){
   r.data={fecha:old?old.data.fecha:j.fecha,hora:old?old.data.hora:hhmm(),ciudad:old?(old.data.ciudad||j.ciudad):j.ciudad,r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,
     tacho:F.tacho,ruta:F.ruta,items:{...F.items},siniestro:F.modo==='prev'?(F.siniestro||''):undefined,limpieza:F.limpieza,golpes:F.golpes,chocado:F.chocado,cambioCont:F.cambioCont,obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc,dist:F.dist,nuevo:F.nuevo};
   if(F.fotosChanged){
+    if(usaAD())ordenarAD(F);
     r.fotos=F.fotos.slice();
+    r.fotosTipo=(F.fotosTipo||[]).slice(0,r.fotos.length);
     r.fotosUrl=F.fotosUrl.slice();
     delete r.foto; delete r.fotoUrl;        // deja atras la forma de una sola foto
   }else if(!Array.isArray(r.fotos)){
@@ -1915,7 +1980,7 @@ function openCorr(tacho,rec){
   }
   F={...blank(),modo:'corr',id:rec?rec.id:null,tacho:String(tacho),ruta:(rec?rec.data.ruta:items[0].r)||'',
     corrItems:items,res:{},obs:rec?(rec.data.obs||''):'',
-    fotos:rec?fotosDe(rec):[],fotosUrl:rec?urlsDe(rec):[],
+    fotos:rec?fotosDe(rec):[],fotosTipo:rec?tiposDe(rec):[],fotosUrl:rec?urlsDe(rec):[],
     lat:rec?rec.data.lat:null,lng:rec?rec.data.lng:null,acc:rec?rec.data.acc:null,bloqueado:!!(rec&&rec.status==='sent')};
   if(rec)items.forEach(x=>{if(x.res)F.res[x.id]=x.res;});
   dirtyForm=false;
@@ -1951,11 +2016,7 @@ function buildCorr(){
 async function guardarCorreccion(){
   const marcados=F.corrItems.filter(x=>F.res[x.id]);
   if(!marcados.length){toast('Marca al menos un ítem: Hecho o No se pudo');return;}
-  const falta=CONFIG.MIN_FOTOS_CORR-cuantasFotos(F);
-  if(falta>0){
-    toast(`Falta${falta===1?'':'n'} ${plural(falta,'foto')}: se necesitan ${CONFIG.MIN_FOTOS_CORR} para guardar`);
-    const el=$('#fPhoto');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});return;
-  }
+  {const m=faltaAD(F);if(m.length){avisarFaltaAD(m);return;}}
   if(marcados.some(x=>F.res[x.id]==='No se pudo')&&!F.obs.trim()){
     toast('Cuenta en observaciones por qué no se pudo');const o=$('#fObs');if(o){o.focus();o.scrollIntoView({behavior:'smooth',block:'center'});}return;
   }
@@ -1966,7 +2027,7 @@ async function guardarCorreccion(){
     r1:old?old.data.r1:j.r1,r2:old?old.data.r2:j.r2,tacho:F.tacho,ruta:F.ruta,
     items:F.corrItems.map(x=>({id:x.id,prev:x.prev,fp:x.fp,ciu:x.ciu,t:x.t,r:x.r,g:x.g,i:x.i,a:x.a,q:x.q,rp:x.rp,res:F.res[x.id]||''})),
     obs:F.obs.trim(),lat:F.lat,lng:F.lng,acc:F.acc};
-  r.fotos=F.fotos.slice();r.fotosUrl=F.fotosUrl.slice();
+  ordenarAD(F);r.fotos=F.fotos.slice();r.fotosTipo=(F.fotosTipo||[]).slice(0,r.fotos.length);r.fotosUrl=F.fotosUrl.slice();
   r.updatedAt=now;r.status='pending';
   try{await dbPut(r);}catch(e){toast('No se pudo guardar en el teléfono. Revisa el espacio disponible.');return;}
   if(!old){records.push(r);lastNewId=r.id;}
