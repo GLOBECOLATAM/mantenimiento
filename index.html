@@ -202,6 +202,8 @@ input,textarea,select{font:inherit;color:inherit}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/3);border-radius:10px;transform:translateX(calc(var(--i,0)*100%));transition:transform .32s cubic-bezier(.2,.9,.25,1.15),background .3s;background:rgba(29,158,117,.2)}
 .seg[data-s="a"] .ind{background:var(--amber)}
 .seg[data-s="c"] .ind{background:var(--blue)}
+.seg.coloca[data-s="c"] .ind{background:var(--amber)}
+.seg.coloca[data-s="c"] button[data-v="k"]{color:#3B2600}
 .seg button{position:relative;z-index:1;height:38px;font-size:12.5px;font-weight:600;color:var(--muted);transition:color .25s}
 .seg[data-s="ok"] button[data-v="ok"]{color:var(--teal)}
 .seg[data-s="a"] button[data-v="a"],.seg[data-s="c"] button[data-v="c"]{color:#fff}
@@ -526,18 +528,28 @@ const I={
   pedal:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h9l7-6"/><path d="M8 18l3-8h4"/></svg>'
 };
 const GROUPS=[
-  {id:'senal',t:'Adhesivos y señalética',ic:I.tag,items:[['numeracion','Numeración'],['no_estacionarse','No estacionarse'],['adhesivo_lateral','Adhesivo lateral'],['linea_centraje','Línea de centraje'],['grafitis','Grafitis']]},
-  {id:'tapa',t:'Tapa',ic:I.lid,items:[['tapa','Tapa contenedor'],['marco_tapa','Marco de tapa'],['perno_tapa','Perno de tapa'],['caucho_tapas','Caucho de tapas'],['perno_autoperf','Perno autoperforante'],['manilla','Manilla']]},
-  {id:'amort',t:'Amortiguación',ic:I.spring,items:[['amortiguador','Amortiguador'],['limitador_amort','Limitador amortiguador'],['soporte_amort','Soporte amortiguador']]},
-  {id:'estr',t:'Estructura y mecanismo',ic:I.frame,items:[['cables','Cables'],['resorte','Resorte vasculam'],['triangulo','Triángulo lateral'],['remaches','Remaches'],['rodillo','Rodillo de toma'],['piso','Piso contenedor'],['tapon','Tapón']]},
+  {id:'senal',t:'Adhesivos y señalética',ic:I.tag,items:[['numeracion','Numeración'],['no_estacionarse','Etiqueta adhesiva reflectiva No estacionar 20x20'],['adhesivo_lateral','Etiqueta adhesiva reflectiva rojo blanco para señalización'],['linea_centraje','Etiqueta adhesiva de operación color negro 69x5'],['grafitis','Grafitis']]},
+  {id:'tapa',t:'Tapa',ic:I.lid,items:[['tapa','Tapa contenedor'],['marco_tapa','Marco de tapa'],['perno_tapa','Perno unión de amortiguador'],['caucho_tapas','Perfil de goma de tapa'],['manilla','Manilla de goma']]},
+  {id:'amort',t:'Amortiguación',ic:I.spring,items:[['amortiguador','Amortiguador de gas 480N'],['limitador_amort','Regleta limitadora'],['soporte_amort','Soporte amortiguador']]},
+  {id:'estr',t:'Estructura y mecanismo',ic:I.frame,items:[['cables','Tirante con perno y clavija L1520mm'],['resorte','Resorte vasculam'],['triangulo','Medias luna'],['remaches','Remaches'],['rodillo','Rodillo de toma'],['piso','Piso contenedor'],['tapon','Tapón']]},
   {id:'pedal',t:'Pedal',ic:I.pedal,items:[['pedal','Pedal'],['soporte_pedal','Soporte de pedal']]}
 ];
 /* Items que solo admiten CAMBIO (sin ajuste): o esta bien, o se cambia. */
-const SOLO_CAMBIO=new Set(['grafitis']);
+const SOLO_CAMBIO=new Set(['grafitis','p_golpes']);
+/* Contrato 028: lo que es parte del preventivo sin costo. OK · Ajuste · Colocado; nunca va al correctivo. */
+const COLOCA=new Set(['p_oxido','p_pintura','p_pernos','p_vinchas','p_buje_tapa','p_remaches']);
+/* Cuando se marca Cambio, al correctivo llega con el nombre y número del contrato */
+const CORR_N={p_tapon:'1. Tapón de descarga completo',p_rodillo_anti:'2. Rodillo anti tropiezo',
+  p_adhesivo_lateral:'3. Etiqueta adhesiva reflectiva rojo blanco para señalización',p_no_estacionarse:'4. Etiqueta adhesiva reflectiva No estacionar 20x20',
+  p_linea_centraje:'5. Etiqueta adhesiva de operación color negro 69x5',p_caucho_tapa:'6. Perfil de goma de tapa',p_manilla:'7. Manilla de goma',
+  p_amortiguador:'8. Amortiguador de gas',p_rodillo_toma:'9. Rodillo de toma',p_perno_tapa:'10. Perno unión de amortiguador',p_limitador:'11. Regleta limitadora',
+  p_cable:'12. Tirante con perno y clavija L1520mm',p_resorte_pedal:'13. Resorte de equilibrado pedal',
+  p_tapa_normal:'14. Tapa completa del contenedor pintada del color del contenedor',p_tapa_buzon:'15. Tapa completa del contenedor pintada en azul con buzón',
+  p_triangulo:'16. Medias luna lámina 3.2 pintada del contenedor',p_pedal:'17. Pedal (3200 litros)',p_golpes:'18. Enderezada de golpes en el contenedor'};
 /* orden de columnas igual al Excel; los que se quitaron del formulario
    (Logo Gidsa, Logo Ambato, Código QR, Tapa travesaño) ya no se escriben:
    las columnas viejas siguen en la hoja con su historico. */
-const ORDER=['numeracion','no_estacionarse','adhesivo_lateral','linea_centraje','grafitis','tapa','marco_tapa','perno_tapa','caucho_tapas','perno_autoperf','manilla','amortiguador','limitador_amort','soporte_amort','cables','resorte','triangulo','remaches','rodillo','piso','tapon','pedal','soporte_pedal'];
+const ORDER=['numeracion','no_estacionarse','adhesivo_lateral','linea_centraje','grafitis','tapa','marco_tapa','perno_tapa','caucho_tapas','manilla','amortiguador','limitador_amort','soporte_amort','cables','resorte','triangulo','remaches','rodillo','piso','tapon','pedal','soporte_pedal'];
 /* Preventivo: los puntos de la hoja «Mantenimiento Preventivo». Las claves
    llevan p_ para no mezclarse con las de la revisión. */
 Object.assign(I,{
@@ -550,17 +562,19 @@ Object.assign(I,{
 const GROUPS_PREV=[
   {id:'p1',t:'Lavado',d:'Contenedor, tapa del lado del pedal y área periférica',ic:I.drop,items:[['p_lavado','Lavado']]},
   {id:'p2',t:'Ajuste de tapón',ic:I.plug,items:[['p_tapon','Ajuste de tapón']]},
-  {id:'p3',t:'Sistema de apertura',d:'Tapa y pedal',ic:I.lid,items:[['p_tapa_normal','Tapa normal'],['p_tapa_buzon','Tapa buzón'],['p_marco_tapa','Marco de tapa'],['p_perno_tapa','Perno de tapa'],['p_cable','Cable'],['p_pedal','Pedal'],['p_soporte_pedal','Soporte de pedal'],['p_resorte_pedal','Resorte de pedal'],['p_amortiguador','Amortiguador'],['p_limitador','Limitador']]},
-  {id:'p4',t:'Señalética · adhesivos',ic:I.tag,items:[['p_numeracion','Numeración'],['p_no_estacionarse','No estacionarse'],['p_adhesivo_lateral','Adhesivo lateral'],['p_linea_centraje','Línea de centraje']]},
-  {id:'p5',t:'Verificación funcional',ic:I.frame,items:[['p_caucho_tapa','Caucho de tapa'],['p_perno_autoperf','Perno autoperforante'],['p_manilla','Manilla'],['p_triangulo','Triángulo lateral']]},
+  {id:'p3',t:'Sistema de apertura',d:'Tapa y pedal',ic:I.lid,items:[['p_tapa_normal','Tapa normal'],['p_tapa_buzon','Tapa buzón'],['p_marco_tapa','Marco de tapa'],['p_perno_tapa','Perno unión de amortiguador'],['p_cable','Tirante con perno y clavija L1520mm'],['p_pedal','Pedal'],['p_soporte_pedal','Soporte de pedal'],['p_resorte_pedal','Resorte de equilibrado pedal'],['p_amortiguador','Amortiguador de gas 480N'],['p_limitador','Regleta limitadora']]},
+  {id:'p4',t:'Señalética · adhesivos',ic:I.tag,items:[['p_numeracion','Numeración'],['p_no_estacionarse','Etiqueta adhesiva reflectiva No estacionar 20x20'],['p_adhesivo_lateral','Etiqueta adhesiva reflectiva rojo blanco para señalización'],['p_linea_centraje','Etiqueta adhesiva de operación color negro 69x5']]},
+  {id:'p5',t:'Verificación funcional',ic:I.frame,items:[['p_caucho_tapa','Perfil de goma de tapa'],['p_manilla','Manilla de goma'],['p_triangulo','Medias luna']]},
   {id:'p6',t:'Rodillo de toma',d:'Y arandela de retención',ic:I.roller,items:[['p_rodillo_toma','Rodillo de toma y arandela']]},
   {id:'p7',t:'Rodillo anti tropiezo',ic:I.roller,items:[['p_rodillo_anti','Rodillo anti tropiezo']]},
-  {id:'p8',t:'Restauración de pintura',ic:I.paint,items:[['p_grafitis','Grafitis'],['p_oxido','Retiro de óxido'],['p_pintura','Pintura']]},
+  {id:'p8',t:'Restauración de pintura',ic:I.paint,items:[['p_grafitis','Grafitis'],['p_golpes','Golpes'],['p_oxido','Retiro de óxido'],['p_pintura','Pintura']]},
   {id:'p9',t:'Pernos, vinchas, bujes y remaches',ic:I.bolt,items:[['p_pernos','Pernos'],['p_vinchas','Vinchas'],['p_buje_tapa','Buje de tapa'],['p_remaches','Remaches']]}
 ];
 const ORDER_PREV=GROUPS_PREV.flatMap(g=>g.items.map(i=>i[0]));
 /* Lavado: solo «Se hizo» o «No se hizo». Es preventivo puro: nunca va al correctivo. */
-const SINO=new Set(['p_lavado']);
+const SINO=new Set(['p_lavado','p_grafitis']);
+/* textos de los dos botones y de la hoja: [no, sí] */
+const SINO_TXT={p_lavado:['No se hizo','Se hizo'],p_grafitis:['OK','Retirado']};
 /* El lavado antes eran 3 puntos: un registro viejo que aún no se envió cuenta como lavado hecho */
 const LAVADO_VIEJO=['p_hidrolavado','p_limpieza_manual','p_limpieza_externa'];
 const lavadoHecho=d=>d.items.p_lavado==='h'||LAVADO_VIEJO.some(k=>d.items[k]!=null);
@@ -585,9 +599,20 @@ function haversine(a,b,c,d){const R=6371000,t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-
 /* Un punto puede quedar en OK, Ajuste, Cambio, o Ajuste + Cambio a la vez
    (en preventivo: se ajustó en sitio Y además necesita cambio → correctivo).
    Valores: 'a' · número de piezas · {a:1,c:n} · 'h' (lavado hecho). */
-const vAj=v=>v==='a'||!!(v&&typeof v==='object'&&v.a);
+const vAj=v=>v==='a'||v==='k'||!!(v&&typeof v==='object'&&v.a);
 const vC=v=>typeof v==='number'?v:(v&&typeof v==='object'&&v.c?v.c:0);
 const mkV=(a,c)=>a&&c?{a:1,c}:a?'a':c?c:undefined;
+/* Registros hechos con la versión anterior: Perno autoperforante se suma a
+   Perno unión de amortiguador; un grafiti marcado «Cambio» es «Retirado». */
+function normItems(items){
+  const it={...(items||{})};
+  [['p_perno_autoperf','p_perno_tapa'],['perno_autoperf','perno_tapa']].forEach(([de,a])=>{
+    if(it[de]==null)return;const x=it[de],y=it[a];delete it[de];
+    if(typeof x==='number'&&(y==null||typeof y==='number')){it[a]=(y||0)+x;return;}
+    const nv=mkV(vAj(x)||vAj(y),vC(x)+vC(y));if(nv===undefined)delete it[a];else it[a]=nv;});
+  if(it.p_grafitis!=null&&it.p_grafitis!=='h')it.p_grafitis='h';
+  return it;
+}
 function totals(d){let c=0,a=0;for(const k in d.items){const v=d.items[k];if(vAj(v))a++;c+=vC(v);}return {c,a};}
 let toastT=null;
 function toast(msg){const t=$('#toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
@@ -1023,24 +1048,24 @@ function hojaDe(r){
   const c=(r.data.ciudad||'').trim().toUpperCase();return c?`${base} · ${c}`:base;
 }
 const hojaCorr=ciudad=>{const c=String(ciudad||'').trim().toUpperCase();return c?`${CONFIG.SHEET_CORR} · ${c}`:CONFIG.SHEET_CORR;};
-const estadoPrev=v=>{const a=vAj(v),c=vC(v);return [a?'Ajuste':'',c?(c>1?`Cambio ×${c}`:'Cambio'):''].filter(Boolean).join(' + ')||'OK';};
-const estadoPrevDe=(d,k)=>SINO.has(k)?(lavadoHecho(d)?'Se hizo':'No se hizo'):estadoPrev(d.items[k]);
+const estadoPrev=v=>{if(v==='k')return 'Colocado';const a=vAj(v),c=vC(v);return [a?'Ajuste':'',c?(c>1?`Cambio ×${c}`:'Cambio'):''].filter(Boolean).join(' + ')||'OK';};
+const estadoPrevDe=(d,k)=>k==='p_lavado'?(lavadoHecho(d)?'Se hizo':'No se hizo'):SINO.has(k)?SINO_TXT[k][d.items[k]==='h'?1:0]:estadoPrev(d.items[k]);
 /* Lo que un preventivo deja para el correctivo: un item por cada punto en
    CAMBIO, mas el siniestro si lo hay. El AJUSTE ya se hizo en el preventivo
    y el lavado es solo preventivo: ninguno de los dos va al correctivo. El ID es fijo (preventivo·clave)
    para que el servidor nunca lo duplique, por mas veces que llegue. */
 function itemsDePrev(r){
-  const d=r.data,out=[],base={prev:r.id,fp:d.fecha,ciu:(d.ciudad||'').toUpperCase(),t:d.tacho,r:d.ruta||'',
+  const d={...r.data,items:normItems(r.data.items)},out=[],base={prev:r.id,fp:d.fecha,ciu:(d.ciudad||'').toUpperCase(),t:d.tacho,r:d.ruta||'',
     rp:[d.r1,d.r2].filter(Boolean).join(' / ')};
   ORDER_PREV.forEach(k=>{
     const c=vC(d.items[k]);if(!c)return;
-    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:LABEL[k],a:'Cambio',q:c});
+    out.push({...base,id:`${r.id}·${k}`,g:GRUPO_DE[k].t,i:CORR_N[k]||LABEL[k],a:'Cambio',q:c});
   });
   if(d.siniestro)out.push({...base,id:`${r.id}·siniestro`,g:'Siniestrado',i:'Contenedor siniestrado',a:d.siniestro,q:1});
   return out;
 }
 function toFields(r){
-  const d=r.data,t=totals(d);
+  const d=modoDe(r)==='corr'?r.data:{...r.data,items:normItems(r.data.items)},t=totals(d);
   if(modoDe(r)==='prev'){
     const f=[['Fecha',d.fecha],['Hora',d.hora],['Ciudad',d.ciudad||''],['Responsable 1',d.r1],['Responsable 2',d.r2||''],['# Tacho',d.tacho],['Ruta',d.ruta||''],
       ['Latitud',d.lat??''],['Longitud',d.lng??''],['Precisión GPS (m)',d.acc!=null?Math.round(d.acc):''],['Distancia a GEO TRACK (m)',d.dist!=null?Math.round(d.dist):'']];
@@ -1234,7 +1259,7 @@ function openForm(rec,nuevo){
   if(!getJ()){openJornada();return;}
   if(rec&&modoDe(rec)==='corr'){openCorr(rec.data.tacho,rec);return;}
   if(nuevo&&!puede(CONFIG.PERMISO_CATASTRO)){toast('No tienes permiso para catastrar contenedores');return;}
-  if(rec){const d=rec.data;F={...blank(),modo:modoDe(rec),siniestro:d.siniestro||'',id:rec.id,tacho:d.tacho,ruta:d.ruta,items:{...d.items},limpieza:!!d.limpieza,golpes:!!d.golpes,chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',nuevo:!!d.nuevo,
+  if(rec){const d=rec.data;F={...blank(),modo:modoDe(rec),siniestro:d.siniestro||'',id:rec.id,tacho:d.tacho,ruta:d.ruta,items:normItems(d.items),limpieza:!!d.limpieza,golpes:!!d.golpes,chocado:!!d.chocado,cambioCont:!!d.cambioCont,obs:d.obs||'',nuevo:!!d.nuevo,
     fotos:fotosDe(rec),fotosTipo:tiposDe(rec),fotosUrl:urlsDe(rec),lat:d.lat,lng:d.lng,acc:d.acc,dist:d.dist,
     qr:d.qr||'NO',gidsa:d.gidsa||'N/A',bloqueado:rec.status==='sent'};}
   else if(nuevo){F={...blank(),nuevo:true};}
@@ -1273,8 +1298,8 @@ $('#fDel').addEventListener('click',async()=>{
   await dbDel(r.id);records=records.filter(x=>x.id!==r.id);closeForm(true);renderAll();toast('Registro eliminado');
 });
 
-function itemState(k){const v=F.items[k];return v==='h'?'a':vC(v)?'c':vAj(v)?'a':'ok';}
-const multiPrev=k=>F&&F.modo==='prev'&&!SINO.has(k)&&!SOLO_CAMBIO.has(k);
+function itemState(k){const v=F.items[k];return v==='k'?'c':v==='h'?'a':vC(v)?'c':vAj(v)?'a':'ok';}
+const multiPrev=k=>F&&F.modo==='prev'&&!SINO.has(k)&&!SOLO_CAMBIO.has(k)&&!COLOCA.has(k);
 function itemHTML(k,l){
   const s=itemState(k),q=vC(F.items[k])||1;
   if(multiPrev(k)){
@@ -1291,7 +1316,14 @@ function itemHTML(k,l){
     return `<div class="it" id="it-${k}">
     <div class="it-row"><div class="it-n">${esc(l)}</div>
       <div class="seg dos sino" data-k="${k}" data-s="${s}" style="--i:${s==='a'?1:0}"><span class="ind"></span>
-        <button data-v="ok" aria-label="${esc(l)}: no se hizo">No se hizo</button><button data-v="h" aria-label="${esc(l)}: se hizo">Se hizo</button>
+        <button data-v="ok" aria-label="${esc(l)}: ${SINO_TXT[k][0]}">${SINO_TXT[k][0]}</button><button data-v="h" aria-label="${esc(l)}: ${SINO_TXT[k][1]}">${SINO_TXT[k][1]}</button>
+      </div></div></div>`;
+  }
+  if(COLOCA.has(k)){
+    return `<div class="it" id="it-${k}">
+    <div class="it-row"><div class="it-n">${esc(l)}</div>
+      <div class="seg coloca" data-k="${k}" data-s="${s}" style="--i:${{ok:0,a:1,c:2}[s]}"><span class="ind"></span>
+        <button data-v="ok" aria-label="${esc(l)}: bien">OK</button><button data-v="a" aria-label="${esc(l)}: ajuste">Ajuste</button><button data-v="k" aria-label="${esc(l)}: colocado">Colocado</button>
       </div></div></div>`;
   }
   const dos=SOLO_CAMBIO.has(k);                       // sin la opcion «Ajuste»
@@ -1447,7 +1479,7 @@ body.addEventListener('click',e=>{
       if(v==='ok'){a=false;c=0;}else if(v==='a')a=!a;else c=c?0:1;
       const nv=mkV(a,c);if(nv===undefined)delete F.items[k];else F.items[k]=nv;
     }
-    else if(v==='ok')delete F.items[k];else if(v==='h')F.items[k]='h';else if(v==='a')F.items[k]='a';else F.items[k]=vC(F.items[k])||1;
+    else if(v==='ok')delete F.items[k];else if(v==='h')F.items[k]='h';else if(v==='k')F.items[k]='k';else if(v==='a')F.items[k]='a';else F.items[k]=vC(F.items[k])||1;
     if(navigator.vibrate)navigator.vibrate(8);
     changed();paintItem(k);return;}
   const q=e.target.closest('[data-q]');
@@ -1518,7 +1550,7 @@ function paintItem(k){
     paintGroup(k);return;
   }
   seg.dataset.s=s;seg.style.setProperty('--i',SINO.has(k)?(s==='a'?1:0):SOLO_CAMBIO.has(k)?(s==='c'?1:0):{ok:0,a:1,c:2}[s]);
-  if(qty)qty.classList.toggle('show',s==='c');if(s==='c')$('#q-'+k).textContent=vC(F.items[k]);
+  if(qty)qty.classList.toggle('show',s==='c'&&!COLOCA.has(k));if(s==='c'&&qty)$('#q-'+k).textContent=vC(F.items[k]);
   paintGroup(k);
 }
 function paintGroup(k){const g=grupos().find(x=>x.items.some(i=>i[0]===k));$('#gs-'+g.id).innerHTML=groupChip(g);groupsFlag();}
