@@ -186,6 +186,7 @@ input,textarea,select{font:inherit;color:inherit}
 .grp-tools button{font-size:12.5px;font-weight:600;color:var(--teal);padding:6px 10px;border-radius:9px;background:rgba(29,158,117,.1)}
 .it{padding:11px 14px 11px 16px;border-top:1px solid var(--line)}
 .it-row{display:flex;align-items:center;gap:10px}
+.it-note{display:none;margin:7px 0 0;font-size:12.5px;line-height:1.35;color:var(--amber);font-weight:600}.it-note.show{display:block}
 .it-n{flex:1;font-size:14.5px;font-weight:500;line-height:1.25}
 .seg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);width:206px;flex:0 0 auto;padding:3px;border-radius:13px;background:var(--surface-2);border:1px solid var(--line)}
 .seg.dos{grid-template-columns:repeat(2,1fr);width:142px}
@@ -1317,7 +1318,7 @@ function itemHTML(k,l){
     <div class="it-row"><div class="it-n">${esc(l)}</div>
       <div class="seg dos sino" data-k="${k}" data-s="${s}" style="--i:${s==='a'?1:0}"><span class="ind"></span>
         <button data-v="ok" aria-label="${esc(l)}: ${SINO_TXT[k][0]}">${SINO_TXT[k][0]}</button><button data-v="h" aria-label="${esc(l)}: ${SINO_TXT[k][1]}">${SINO_TXT[k][1]}</button>
-      </div></div></div>`;
+      </div></div>${k==='p_grafitis'?'<div class="it-note" id="gp-p_grafitis" role="status"></div>':''}</div>`;
   }
   if(COLOCA.has(k)){
     return `<div class="it" id="it-${k}">
@@ -1594,6 +1595,7 @@ function calcDist(){const hit=GEOMAP.get((F.tacho||'').toLowerCase());F.dist=(hi
 
 /* chips de estado: GPS, distancia, duplicado */
 function paintChips(){
+  if(F&&F.modo==='prev')pintarGrafPend();
   const el=$('#fChips');if(!el)return;const out=[];
   if(precisa){
     const quedan=Math.max(0,Math.ceil((precisa.dur-(Date.now()-precisa.t0))/1000));
@@ -1612,6 +1614,7 @@ function paintChips(){
       :'<span class="chip warn">No está en GEO TRACK · elige la ruta</span>');
   const j=getJ(),dup=F.modo!=='corr'&&F.tacho&&records.find(r=>r.id!==F.id&&modoDe(r)===F.modo&&r.data.fecha===(j&&j.fecha)&&r.data.tacho===F.tacho);
   if(dup)out.push(`<span class="chip bad">Ya lo revisaste hoy · <button data-open="${dup.id}">Abrir</button></span>`);
+  if(F.modo==='prev'&&F.tacho&&grafPend(F.tacho)&&F.items.p_grafitis!=='h')out.push('<span class="chip warn">Grafiti pendiente de retirar</span>');
   el.innerHTML=out.join('');
 }
 function paintGPS(){calcDist();paintChips();if(F&&F.nuevo)pintarFicha();}
@@ -1863,6 +1866,11 @@ const normB=t=>String(t??'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'
 let trayendo=false,pendError='',otraVez=false;
 const CF={q:'',fecha:'',ruta:'',item:'',est:'abiertos'};
 
+/* Grafitis que un preventivo anterior dejó pendientes: se avisan en el formulario */
+function grafPend(t){const P=LS.get(pendKey(),null);const g=(P&&Array.isArray(P.graf))?P.graf:[];t=String(t||'').trim().toUpperCase();
+  const f=g.filter(x=>String(x[0]).toUpperCase()===t).map(x=>x[1]).filter(Boolean).sort();return t&&g.some(x=>String(x[0]).toUpperCase()===t)?(f[0]||'?'):'';}
+function pintarGrafPend(){try{const el=$('#gp-p_grafitis');if(!el||!F)return;const f=grafPend(F.tacho);
+  el.innerHTML=f?`Grafiti pendiente${f!=='?'?' desde el '+esc(fCorta(f)):''}: retíralo y marca «Retirado».`:'';el.classList.toggle('show',!!f);}catch(e){}}
 async function traerPendientes(){
   if(!CONFIG.APPS_SCRIPT_URL||!navigator.onLine)return;
   // si ya hay una descarga en curso, se repite al terminar: pudo salir antes
@@ -1875,7 +1883,7 @@ async function traerPendientes(){
       body:JSON.stringify({action:'pendientes',hoja:hojaCorr(ciudadMia())}),redirect:'follow',signal:ctl.signal});
     clearTimeout(to);
     const j=await r.json();
-    if(j&&j.ok&&Array.isArray(j.items)){LS.set(pendKey(),{t:Date.now(),items:j.items});pendError='';}
+    if(j&&j.ok&&Array.isArray(j.items)){LS.set(pendKey(),{t:Date.now(),items:j.items,graf:Array.isArray(j.graf)?j.graf:[]});pendError='';if(MODO==='prev'&&F)pintarGrafPend();}
     else pendError=(j&&j.error)||'respuesta inesperada';
   }catch(e){pendError=String(e&&e.message||e);}
   trayendo=false;
